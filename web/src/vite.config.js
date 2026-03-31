@@ -1,8 +1,19 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 
+// Strip type="module" from built HTML — FiveM CEF doesn't support ES modules
+function stripModuleType() {
+  return {
+    name: 'strip-module-type',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      return html.replace(/ type="module" crossorigin/g, '');
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [svelte(), stripModuleType()],
   base: './', // Relative paths for FiveM NUI
   build: {
     outDir: '../dist', // Output to web/dist/

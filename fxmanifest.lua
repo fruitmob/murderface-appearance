@@ -39,6 +39,7 @@ client_scripts {
   "client/blips.lua",
   "client/props.lua",
   "client/client.lua",
+  "client/fmrp-commands.lua",
 }
 
 server_scripts {

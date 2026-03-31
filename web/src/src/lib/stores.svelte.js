@@ -4,42 +4,66 @@
  */
 import { fetchNui } from './nui.js';
 
-// Component ID → human-readable category mapping
+// Component ID → human-readable name + illenium config key
 export const COMPONENT_MAP = {
-  0: { name: 'Head', category: null },     // Not shown in UI
-  1: { name: 'Masks', category: 'Masks' },
-  2: { name: 'Hair', category: null },     // Handled by barber
-  3: { name: 'Arms', category: 'Tops' },   // Upper body torso
-  4: { name: 'Pants', category: 'Pants' },
-  5: { name: 'Bags', category: 'Bags' },
-  6: { name: 'Shoes', category: 'Shoes' },
-  7: { name: 'Accessories', category: 'Accessories' },
-  8: { name: 'Undershirt', category: 'Shirts' },
-  9: { name: 'Body Armor', category: 'Armor' },
-  10: { name: 'Decals', category: 'Decals' },
-  11: { name: 'Jackets', category: 'Tops' },
+  0: { name: 'Head', configKey: null },         // Not shown in UI
+  1: { name: 'Masks', configKey: 'masks' },
+  2: { name: 'Hair', configKey: null },         // Handled by barber
+  3: { name: 'Arms', configKey: 'upperBody' },
+  4: { name: 'Pants', configKey: 'lowerBody' },
+  5: { name: 'Bags', configKey: 'bags' },
+  6: { name: 'Shoes', configKey: 'shoes' },
+  7: { name: 'Chains', configKey: 'scarfAndChains' },
+  8: { name: 'Undershirt', configKey: 'shirts' },
+  9: { name: 'Body Armor', configKey: 'bodyArmor' },
+  10: { name: 'Decals', configKey: 'decals' },
+  11: { name: 'Jackets', configKey: 'jackets' },
 };
 
 export const PROP_MAP = {
-  0: { name: 'Hats', category: 'Hats' },
-  1: { name: 'Glasses', category: 'Glasses' },
-  2: { name: 'Ear', category: 'Ear' },
-  6: { name: 'Watches', category: 'Watches' },
-  7: { name: 'Bracelets', category: 'Bracelets' },
+  0: { name: 'Hats', configKey: 'hats' },
+  1: { name: 'Glasses', configKey: 'glasses' },
+  2: { name: 'Ear', configKey: 'ear' },
+  6: { name: 'Watches', configKey: 'watches' },
+  7: { name: 'Bracelets', configKey: 'bracelets' },
 };
 
-// Categories shown in the UI tabs
-export const CATEGORIES = [
-  { name: 'Tops', type: 'component', ids: [11, 8, 3] },
-  { name: 'Pants', type: 'component', ids: [4] },
-  { name: 'Shoes', type: 'component', ids: [6] },
-  { name: 'Hats', type: 'prop', ids: [0] },
-  { name: 'Glasses', type: 'prop', ids: [1] },
-  { name: 'Masks', type: 'component', ids: [1] },
-  { name: 'Bags', type: 'component', ids: [5] },
-  { name: 'Armor', type: 'component', ids: [9] },
-  { name: 'Accessories', type: 'mixed', componentIds: [7, 10], propIds: [2, 6, 7] },
+// All possible category definitions — filtered at runtime by componentConfig/propConfig
+const ALL_CATEGORIES = [
+  { name: 'Tops', type: 'component', ids: [11, 8, 3], configKeys: ['jackets', 'shirts', 'upperBody'] },
+  { name: 'Pants', type: 'component', ids: [4], configKeys: ['lowerBody'] },
+  { name: 'Shoes', type: 'component', ids: [6], configKeys: ['shoes'] },
+  { name: 'Hats', type: 'prop', ids: [0], configKeys: ['hats'] },
+  { name: 'Glasses', type: 'prop', ids: [1], configKeys: ['glasses'] },
+  { name: 'Masks', type: 'component', ids: [1], configKeys: ['masks'] },
+  { name: 'Bags', type: 'component', ids: [5], configKeys: ['bags'] },
+  { name: 'Armor', type: 'component', ids: [9], configKeys: ['bodyArmor'] },
+  { name: 'Accessories', type: 'mixed', componentIds: [7, 10], propIds: [2, 6, 7], configKeys: ['scarfAndChains', 'decals', 'ear', 'watches', 'bracelets'] },
 ];
+
+/**
+ * Build active categories from illenium config (componentConfig + propConfig)
+ * Filters out categories where ALL component/prop keys are disabled
+ */
+export function getActiveCategories(componentConfig, propConfig) {
+  if (!componentConfig && !propConfig) return ALL_CATEGORIES;
+
+  return ALL_CATEGORIES.filter(cat => {
+    if (cat.type === 'component') {
+      return cat.configKeys.some(key => !componentConfig || componentConfig[key] !== false);
+    }
+    if (cat.type === 'prop') {
+      return cat.configKeys.some(key => !propConfig || propConfig[key] !== false);
+    }
+    // mixed — show if any component OR prop key is enabled
+    const hasComp = cat.configKeys.some(key => {
+      if (key in (componentConfig || {})) return componentConfig[key] !== false;
+      if (key in (propConfig || {})) return propConfig[key] !== false;
+      return true;
+    });
+    return hasComp;
+  });
+}
 
 /**
  * Create the main appearance store
@@ -54,6 +78,8 @@ export function createAppearanceStore() {
   let originalAppearance = $state(null);
   let theme = $state(null);
   let locales = $state(null);
+  let categories = $state(ALL_CATEGORIES);
+  let shopInfo = $state({ shopType: 'clothing', cost: 0, cash: 0 });
 
   // Current UI state
   let activeCategory = $state('Tops');
@@ -78,6 +104,8 @@ export function createAppearanceStore() {
     get maxDrawable() { return maxDrawable; },
     get maxTexture() { return maxTexture; },
     get activeCamera() { return activeCamera; },
+    get categories() { return categories; },
+    get shopInfo() { return shopInfo; },
 
     // Setters
     set activeCategory(val) { activeCategory = val; },
@@ -100,6 +128,24 @@ export function createAppearanceStore() {
         config = dataRes?.config;
         appearance = dataRes?.appearanceData;
         originalAppearance = JSON.parse(JSON.stringify(appearance));
+
+        // Build categories from illenium config (respect disabled components/props)
+        categories = getActiveCategories(
+          config?.componentConfig,
+          config?.propConfig
+        );
+        // Reset active category to first available
+        if (categories.length > 0 && !categories.find(c => c.name === activeCategory)) {
+          activeCategory = categories[0].name;
+        }
+
+        // Get shop costs + player balance
+        try {
+          const info = await fetchNui('murderface_get_shop_info');
+          if (info) shopInfo = info;
+        } catch (_) {
+          // Non-critical — keep defaults
+        }
         theme = themeRes;
 
         // Initialize drawable/texture state from current appearance
@@ -315,7 +361,7 @@ export function createAppearanceStore() {
     // ---- HELPERS ----
 
     getItemsForCategory(categoryName) {
-      const cat = CATEGORIES.find(c => c.name === categoryName);
+      const cat = categories.find(c => c.name === categoryName);
       if (!cat) return [];
 
       const items = [];

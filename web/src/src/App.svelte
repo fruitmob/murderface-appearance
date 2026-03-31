@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { fetchNui, onNuiMessage } from './lib/nui.js';
-  import { createAppearanceStore, CATEGORIES } from './lib/stores.svelte.js';
+  import { createAppearanceStore } from './lib/stores.svelte.js';
   import CharacterCreator from './screens/CharacterCreator.svelte';
   import BarberShop from './screens/BarberShop.svelte';
   import TattooShop from './screens/TattooShop.svelte';
@@ -68,6 +68,11 @@
     const type = sel.type === 'component' ? 'c' : 'p';
     await store.changeTexture(type, sel.id, newTex);
   }
+
+  // ---- TABS SCROLL ----
+  let tabsEl = $state(null);
+  function scrollTabsLeft() { if (tabsEl) tabsEl.scrollLeft -= 120; }
+  function scrollTabsRight() { if (tabsEl) tabsEl.scrollLeft += 120; }
 
   // ---- MOUSE DRAG CAMERA ----
   let isDragging = $state(false);
@@ -141,12 +146,12 @@
       {#if screenMode !== 'creator' && screenMode !== 'outfits'}
         <div class="header-right">
           <div class="money-section">
-            <span class="money-label">Outfit Total</span>
-            <span class="money-value">$1,350</span>
+            <span class="money-label">Shop Fee</span>
+            <span class="money-value">${store.shopInfo.cost.toLocaleString()}</span>
           </div>
           <div class="money-section balance">
-            <span class="money-label">Balance</span>
-            <span class="money-value dim">$12,450</span>
+            <span class="money-label">Cash</span>
+            <span class="money-value dim">${store.shopInfo.cash.toLocaleString()}</span>
           </div>
         </div>
       {/if}
@@ -174,18 +179,22 @@
     </div>
 
     <!-- Category Tabs -->
-    <div class="tabs">
-      {#each CATEGORIES as cat}
-        {@const count = store.getItemsForCategory(cat.name).length}
-        <button
-          class="tab"
-          class:active={store.activeCategory === cat.name}
-          onclick={() => { store.activeCategory = cat.name; store.setCamera('default'); }}
-        >
-          {cat.name}
-          {#if count > 0}<span class="tab-count">{count}</span>{/if}
-        </button>
-      {/each}
+    <div class="tabs-wrapper">
+      <button class="tabs-arrow tabs-arrow-left" onclick={scrollTabsLeft}>‹</button>
+      <div class="tabs" bind:this={tabsEl}>
+        {#each store.categories as cat}
+          {@const count = store.getItemsForCategory(cat.name).length}
+          <button
+            class="tab"
+            class:active={store.activeCategory === cat.name}
+            onclick={() => { store.activeCategory = cat.name; store.setCamera('default'); }}
+          >
+            {cat.name}
+            {#if count > 0}<span class="tab-count">{count}</span>{/if}
+          </button>
+        {/each}
+      </div>
+      <button class="tabs-arrow tabs-arrow-right" onclick={scrollTabsRight}>›</button>
     </div>
 
     <!-- Item Grid -->
@@ -206,7 +215,7 @@
           </div>
           <div class="card-info">
             <span class="card-label">{item.label}</span>
-            <span class="card-price" class:selected={item.isSelected}>${100 + item.drawable * 25}</span>
+            {#if item.isSelected}<span class="card-equipped">Equipped</span>{/if}
           </div>
         </button>
       {/each}
@@ -395,17 +404,41 @@
   }
 
   /* ============ TABS ============ */
+  .tabs-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 8px 8px 12px;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  .tabs-arrow {
+    width: 24px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(18, 19, 24, 0.8);
+    border: 1px solid rgba(30, 32, 40, 0.4);
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .tabs-arrow:hover { color: var(--text-primary); border-color: rgba(60, 65, 78, 0.6); }
+
   .tabs {
     display: flex;
     gap: 8px;
-    padding: 8px 16px 12px;
     overflow-x: auto;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
     scroll-behavior: smooth;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    mask-image: linear-gradient(to right, black 85%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
   .tabs::-webkit-scrollbar { display: none; }
 
@@ -518,9 +551,7 @@
   .card-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
   .card.selected .card-label { color: var(--text-primary); font-weight: 700; }
 
-  .card-price { font-size: 12px; font-weight: 500; color: var(--text-muted); }
-  .card-price.selected { font-size: 14px; font-weight: 700; color: var(--accent); }
-  .card-owned { font-size: 12px; font-weight: 600; color: rgba(0, 180, 140, 0.8); }
+  .card-equipped { font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; }
 
   /* ============ DETAIL BAR ============ */
   .detail-bar {
