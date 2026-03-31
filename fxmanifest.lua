@@ -8,6 +8,8 @@ version "main"
 
 lua54 "yes"
 
+provide "illenium-appearance"
+
 client_scripts {
   "game/constants.lua",
   "game/util.lua",
