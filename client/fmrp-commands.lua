@@ -184,6 +184,14 @@ RegisterNUICallback("murderface_zoom", function(data, cb)
     updateCamPosition()
 end)
 
+-- Override turn around — rotate orbital camera 180° instead of making ped walk
+RegisterNUICallback("appearance_turn_around", function(_, cb)
+    cb(1)
+    if not orbitCam or changingCam then return end
+    orbitAngleZ = orbitAngleZ + 180.0
+    updateCamPosition()
+end)
+
 -- Override camera presets — just changes target + distance, orbit keeps working
 RegisterNUICallback("appearance_set_camera", function(camera, cb)
     cb(1)
