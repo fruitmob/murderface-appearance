@@ -148,7 +148,7 @@
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
     if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-      fetchNui('murderface_rotate', { deltaX: deltaX * -1.0, deltaY: deltaY * -1.0 });
+      fetchNui('murderface_rotate', { deltaX, deltaY });
     }
   }
 

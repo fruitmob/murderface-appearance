@@ -79,6 +79,12 @@
     return found?.style?.max ?? found?.max ?? 15;
   }
 
+  function getOverlayColorItems(overlayKey) {
+    const overlays = store.settings?.headOverlays;
+    if (!overlays) return null;
+    const found = Array.isArray(overlays) ? overlays.find(o => o.id === overlayKey) : overlays[overlayKey];
+    return found?.color?.items || null;
+  }
 
 </script>
 
@@ -104,7 +110,11 @@
         <div class="slider-group">
           <label class="slider-label">
             <span>Style</span>
-            <span class="slider-value">{store.appearance?.hair?.style ?? 0}</span>
+            <div class="step-arrows">
+              <button class="step-btn" onclick={() => store.changeHair({ style: Math.max(0, (store.appearance?.hair?.style ?? 0) - 1) })}>&#8249;</button>
+              <span class="slider-value">{store.appearance?.hair?.style ?? 0}</span>
+              <button class="step-btn" onclick={() => store.changeHair({ style: Math.min(getHairMax('style'), (store.appearance?.hair?.style ?? 0) + 1) })}>&#8250;</button>
+            </div>
           </label>
           <input type="range" class="slider" min="0" max={getHairMax('style')} step="1"
             value={store.appearance?.hair?.style ?? 0}
@@ -156,7 +166,11 @@
         <div class="slider-group">
           <label class="slider-label">
             <span>Texture</span>
-            <span class="slider-value">{store.appearance?.hair?.texture ?? 0}</span>
+            <div class="step-arrows">
+              <button class="step-btn" onclick={() => store.changeHair({ texture: Math.max(0, (store.appearance?.hair?.texture ?? 0) - 1) })}>&#8249;</button>
+              <span class="slider-value">{store.appearance?.hair?.texture ?? 0}</span>
+              <button class="step-btn" onclick={() => store.changeHair({ texture: Math.min(getHairMax('texture'), (store.appearance?.hair?.texture ?? 0) + 1) })}>&#8250;</button>
+            </div>
           </label>
           <input type="range" class="slider" min="0" max={getHairMax('texture')} step="1"
             value={store.appearance?.hair?.texture ?? 0}
@@ -178,7 +192,11 @@
               <div class="slider-group compact">
                 <label class="slider-label">
                   <span>Style</span>
-                  <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
+                  <div class="step-arrows">
+                    <button class="step-btn" onclick={() => handleOverlayChange(overlay.key, 'style', Math.max(0, getOverlayStyle(overlay.key) - 1))}>&#8249;</button>
+                    <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
+                    <button class="step-btn" onclick={() => handleOverlayChange(overlay.key, 'style', Math.min(getOverlayMax(overlay.key), getOverlayStyle(overlay.key) + 1))}>&#8250;</button>
+                  </div>
                 </label>
                 <input type="range" class="slider" min="0" max={getOverlayMax(overlay.key)} step="1"
                   value={getOverlayStyle(overlay.key)}
@@ -194,15 +212,26 @@
                   oninput={(e) => handleOverlayChange(overlay.key, 'opacity', e.target.value)} />
               </div>
               {#if overlay.hasColor}
+                {@const colorItems = getOverlayColorItems(overlay.key)}
                 <div class="slider-group compact">
                   <label class="slider-label">
-                    <span>Color ({overlay.hasColor === 'hair' ? 'Hair' : 'Makeup'})</span>
+                    <span>Color</span>
                     <span class="slider-value">{getOverlayColor(overlay.key)}</span>
                   </label>
                   <input type="range" class="slider accent" min="0" max="63" step="1"
                     value={getOverlayColor(overlay.key)}
                     oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
-                  <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                  {#if colorItems?.length > 0}
+                    <div class="color-picker">
+                      {#each colorItems as rgb, i}
+                        <button class="color-dot" class:active={getOverlayColor(overlay.key) === i}
+                          style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                          onclick={() => handleOverlayChange(overlay.key, 'color', i)} />
+                      {/each}
+                    </div>
+                  {:else}
+                    <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -224,7 +253,11 @@
               <div class="slider-group compact">
                 <label class="slider-label">
                   <span>Style</span>
-                  <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
+                  <div class="step-arrows">
+                    <button class="step-btn" onclick={() => handleOverlayChange(overlay.key, 'style', Math.max(0, getOverlayStyle(overlay.key) - 1))}>&#8249;</button>
+                    <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
+                    <button class="step-btn" onclick={() => handleOverlayChange(overlay.key, 'style', Math.min(getOverlayMax(overlay.key), getOverlayStyle(overlay.key) + 1))}>&#8250;</button>
+                  </div>
                 </label>
                 <input type="range" class="slider" min="0" max={getOverlayMax(overlay.key)} step="1"
                   value={getOverlayStyle(overlay.key)}
@@ -240,15 +273,26 @@
                   oninput={(e) => handleOverlayChange(overlay.key, 'opacity', e.target.value)} />
               </div>
               {#if overlay.hasColor}
+                {@const colorItems = getOverlayColorItems(overlay.key)}
                 <div class="slider-group compact">
                   <label class="slider-label">
-                    <span>Color ({overlay.hasColor === 'hair' ? 'Hair' : 'Makeup'})</span>
+                    <span>Color</span>
                     <span class="slider-value">{getOverlayColor(overlay.key)}</span>
                   </label>
                   <input type="range" class="slider accent" min="0" max="63" step="1"
                     value={getOverlayColor(overlay.key)}
                     oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
-                  <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                  {#if colorItems?.length > 0}
+                    <div class="color-picker">
+                      {#each colorItems as rgb, i}
+                        <button class="color-dot" class:active={getOverlayColor(overlay.key) === i}
+                          style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                          onclick={() => handleOverlayChange(overlay.key, 'color', i)} />
+                      {/each}
+                    </div>
+                  {:else}
+                    <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                  {/if}
                 </div>
               {/if}
             </div>

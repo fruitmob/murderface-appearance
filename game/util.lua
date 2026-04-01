@@ -369,7 +369,17 @@ local function setPreviewTattoo(ped, tattoos, tattoo)
 end
 
 local function setPedAppearance(ped, appearance)
+    -- FMRP: Support single-arg call from exports (um-multicharacter passes just skinData)
+    if appearance == nil and type(ped) == 'table' then
+        appearance = ped
+        ped = cache.ped
+    end
     if appearance then
+        -- Load model first if provided (handles character select where model may not be set yet)
+        if appearance.model then
+            setPlayerModel(appearance.model)
+            ped = cache.ped -- refresh ped handle after model change
+        end
         setPedComponents(ped, appearance.components)
         setPedProps(ped, appearance.props)
 

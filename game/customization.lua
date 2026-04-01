@@ -551,6 +551,7 @@ function client.startPlayerCustomization(cb, conf)
     -- FMRP: Ensure ped is visible (fixes invisible character bug)
     SetEntityVisible(cache.ped, true, false)
     SetEntityAlpha(cache.ped, 255, false)
+    ResetEntityAlpha(cache.ped)
 
     setCamera("default")
     SetNuiFocus(true, true)
