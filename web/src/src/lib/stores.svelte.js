@@ -330,6 +330,12 @@ export function createAppearanceStore() {
       return fetchNui('appearance_delete_tattoo', data);
     },
 
+    updateTattoos(updatedTattoos) {
+      if (appearance) {
+        appearance.tattoos = updatedTattoos;
+      }
+    },
+
     // ---- OUTFITS ----
 
     async wearClothes(data, key) {
@@ -355,16 +361,17 @@ export function createAppearanceStore() {
 
     async changeModel(model) {
       // Preserve model items list — backend doesn't resend it on model change
-      const savedModelItems = settings?.model?.items;
+      // Lua nests as settings.ped.model.items
+      const savedModelItems = settings?.ped?.model?.items;
       const result = await fetchNui('appearance_change_model', model);
       if (result) {
         settings = result.appearanceSettings || settings;
         appearance = result.appearanceData || appearance;
         // Restore model items if they were cleared
-        if (savedModelItems && settings) {
-          if (!settings.model) settings.model = {};
-          if (!settings.model.items || settings.model.items.length === 0) {
-            settings.model.items = savedModelItems;
+        if (savedModelItems && settings?.ped) {
+          if (!settings.ped.model) settings.ped.model = {};
+          if (!settings.ped.model.items || settings.ped.model.items.length === 0) {
+            settings.ped.model.items = savedModelItems;
           }
         }
       }

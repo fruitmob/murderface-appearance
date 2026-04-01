@@ -11,8 +11,8 @@
   const store = createAppearanceStore();
   const isDev = !window.GetParentResourceName;
 
-  // Screen mode: 'clothing' | 'creator' | 'barber' | 'tattoo' | 'outfits'
-  let screenMode = $state('clothing');
+  // Screen mode: null (loading) | 'clothing' | 'creator' | 'barber' | 'tattoo' | 'outfits'
+  let screenMode = $state(null);
 
   // Section nav — built from config booleans, shown when 2+ sections enabled
   let sections = $state([]);
@@ -122,6 +122,21 @@
   function scrollTabsLeft() { if (tabsEl) tabsEl.scrollLeft -= 120; }
   function scrollTabsRight() { if (tabsEl) tabsEl.scrollLeft += 120; }
 
+  // ---- CLOTHING TOGGLE STATE ----
+  let strippedRegions = $state({ head: false, body: false, bottom: false });
+
+  async function toggleClothes(region) {
+    if (strippedRegions[region]) {
+      // Restore — send current appearance data + region key
+      await store.wearClothes(store.appearance, region);
+      strippedRegions[region] = false;
+    } else {
+      // Strip
+      await store.removeClothes(region);
+      strippedRegions[region] = true;
+    }
+  }
+
   // ---- MOUSE DRAG CAMERA ----
   let isDragging = $state(false);
   let lastMouseX = $state(0);
@@ -162,7 +177,7 @@
   }
 </script>
 
-{#if store.visible}
+{#if store.visible && screenMode}
 <div class="app" style={isDev ? `background-image: url(${gtaBg});` : ''}
   onmousedown={handleMouseDown}
   onmouseup={handleMouseUp}
@@ -232,9 +247,9 @@
 
     <!-- Clothing Toggle Buttons -->
     <div class="clothing-toggles">
-      <button class="toggle-btn" onclick={() => store.removeClothes('head')}>Toggle Head</button>
-      <button class="toggle-btn" onclick={() => store.removeClothes('body')}>Toggle Top</button>
-      <button class="toggle-btn" onclick={() => store.removeClothes('bottom')}>Toggle Bottom</button>
+      <button class="toggle-btn" class:stripped={strippedRegions.head} onclick={() => toggleClothes('head')}>{strippedRegions.head ? 'Restore Head' : 'Strip Head'}</button>
+      <button class="toggle-btn" class:stripped={strippedRegions.body} onclick={() => toggleClothes('body')}>{strippedRegions.body ? 'Restore Top' : 'Strip Top'}</button>
+      <button class="toggle-btn" class:stripped={strippedRegions.bottom} onclick={() => toggleClothes('bottom')}>{strippedRegions.bottom ? 'Restore Bottom' : 'Strip Bottom'}</button>
     </div>
 
     <!-- Search -->
@@ -699,6 +714,7 @@
   }
   .toggle-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
   .toggle-btn:active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+  .toggle-btn.stripped { color: var(--red); border-color: var(--red-border); background: var(--red-dim); }
 
   .drawable-input {
     width: 42px; text-align: center; padding: 2px 4px;

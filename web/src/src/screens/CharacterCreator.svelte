@@ -147,7 +147,8 @@
   const FREEMODE_PEDS = ['mp_m_freemode_01', 'mp_f_freemode_01'];
 
   function getAvailablePeds() {
-    const items = store.settings?.model?.items;
+    // Lua nests as settings.ped.model.items
+    const items = store.settings?.ped?.model?.items;
     if (!items || !Array.isArray(items)) return [];
     return items.filter(p => !FREEMODE_PEDS.includes(p));
   }

@@ -72,15 +72,20 @@
       currentZoneTattoos.push(withOpacity);
     }
     const updatedTattoos = { ...store.appearance?.tattoos, [activeZone]: currentZoneTattoos };
-    await store.applyTattoo(withOpacity, updatedTattoos);
+    const paid = await store.applyTattoo(withOpacity, updatedTattoos);
+    if (paid !== false) {
+      // Update store state so UI reflects the applied tattoo
+      store.updateTattoos(updatedTattoos);
+    }
   }
 
   async function handleRemove(tattoo) {
-    // Build updated tattoos with this tattoo filtered out
     const currentZoneTattoos = (store.appearance?.tattoos?.[activeZone] || [])
       .filter(t => t.name !== tattoo.name);
     const updatedTattoos = { ...store.appearance?.tattoos, [activeZone]: currentZoneTattoos };
     await store.deleteTattoo(updatedTattoos);
+    // Update store state so UI reflects the removal
+    store.updateTattoos(updatedTattoos);
   }
 
   async function handlePreview(tattoo) {

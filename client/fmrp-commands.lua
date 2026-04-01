@@ -57,97 +57,130 @@ RegisterNetEvent("murderface-appearance:client:openFullMenu", function()
 end)
 
 -- ============ ORBITAL CAMERA SYSTEM ============
--- Camera orbits around stationary ped using spherical coordinates
+-- Based on bl_appearance pattern: event-driven, no game thread.
+-- Presets change target + distance, orbital drag always works.
 
-local orbitAngleZ = 0.0      -- horizontal yaw (radians)
-local orbitAngleY = 0.15     -- vertical pitch (radians), slight upward look
-local orbitDistance = 2.2     -- zoom distance
-local orbitTargetZ = 0.2     -- target point Z offset from ped root
-local orbitCamActive = false
-local orbitCam = nil
+local orbitAngleZ = 0.0      -- horizontal yaw (degrees, matches heading)
+local orbitAngleY = 0.0      -- vertical pitch (degrees)
+local orbitDistance = 1.8     -- zoom distance
+local orbitTargetCoords = nil -- vec3 orbit target (ped position + bone offset)
+local orbitCam = nil          -- current camera handle
+local orbitOldCam = nil       -- previous camera (during interp)
+local changingCam = false     -- lock during preset transitions
 
--- Camera presets: bone offset + distance + pitch
-local ORBIT_PRESETS = {
-    default = { z = 0.2,  dist = 2.2, pitch = 0.15 },
-    head    = { z = 0.65, dist = 0.9, pitch = 0.10 },
-    body    = { z = 0.2,  dist = 1.2, pitch = 0.12 },
-    bottom  = { z = -0.7, dist = 1.0, pitch = -0.15 },
+-- Bone IDs for camera presets (matches bl_appearance)
+local CAMERA_BONES = {
+    default = 0,        -- whole body (use entity coords)
+    head    = 31086,    -- SKEL_Head
+    body    = 24818,    -- SKEL_Spine3
+    bottom  = 16335,    -- l_thigh (leg area)
 }
 
-local function startOrbitCamera()
-    if orbitCamActive then return end
-    orbitCamActive = true
+local CAMERA_DISTANCES = {
+    default = 1.8,
+    head    = 0.8,
+    body    = 1.1,
+    bottom  = 1.0,
+}
 
-    local ped = PlayerPedId()
-    local pedCoords = GetEntityCoords(ped)
-
-    orbitCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-    SetCamActive(orbitCam, true)
-    RenderScriptCams(true, false, 0, true, true)
-
-    CreateThread(function()
-        while orbitCamActive do
-            ped = PlayerPedId()
-            pedCoords = GetEntityCoords(ped)
-
-            -- Spherical to cartesian
-            local camX = pedCoords.x + orbitDistance * math.cos(orbitAngleY) * math.sin(orbitAngleZ)
-            local camY = pedCoords.y + orbitDistance * math.cos(orbitAngleY) * math.cos(orbitAngleZ)
-            local camZ = pedCoords.z + orbitTargetZ + orbitDistance * math.sin(orbitAngleY)
-
-            SetCamCoord(orbitCam, camX, camY, camZ)
-            PointCamAtCoord(orbitCam, pedCoords.x, pedCoords.y, pedCoords.z + orbitTargetZ)
-
-            Wait(0)
-        end
-    end)
+-- Convert spherical to cartesian offset
+local function getOrbitOffset()
+    local radZ = math.rad(orbitAngleZ)
+    local radY = math.rad(orbitAngleY)
+    local x = math.cos(radZ) * math.cos(radY) * orbitDistance
+    local y = math.sin(radZ) * math.cos(radY) * orbitDistance
+    local z = math.sin(radY) * orbitDistance
+    return x, y, z
 end
 
-local function stopOrbitCamera()
-    orbitCamActive = false
-    if orbitCam then
-        DestroyCam(orbitCam, false)
-        orbitCam = nil
+-- Update camera position — called on every mouse move/zoom/preset (no thread)
+local function updateCamPosition()
+    if not orbitCam or not orbitTargetCoords or changingCam then return end
+    local ox, oy, oz = getOrbitOffset()
+    SetCamCoord(orbitCam, orbitTargetCoords.x + ox, orbitTargetCoords.y + oy, orbitTargetCoords.z + oz)
+    PointCamAtCoord(orbitCam, orbitTargetCoords.x, orbitTargetCoords.y, orbitTargetCoords.z)
+end
+
+-- Get target coords from ped bone
+local function getBoneCoords(ped, boneOrPreset)
+    local boneId = CAMERA_BONES[boneOrPreset] or CAMERA_BONES.default
+    if boneId == 0 then
+        local coords = GetEntityCoords(ped)
+        return vector3(coords.x, coords.y, coords.z + 0.2) -- slight offset above feet
+    end
+    return GetPedBoneCoords(ped, boneId, 0.0, 0.0, 0.0)
+end
+
+-- Move camera to a preset with smooth interpolation (bl_appearance pattern)
+local function moveCamera(ped, preset)
+    local newTarget = getBoneCoords(ped, preset)
+    local newDist = CAMERA_DISTANCES[preset] or 1.8
+
+    changingCam = true
+    orbitDistance = newDist
+    orbitAngleZ = GetEntityHeading(ped) + 180.0 -- face front of ped
+    orbitTargetCoords = newTarget
+
+    local ox, oy, oz = getOrbitOffset()
+
+    -- Create new camera at destination
+    local newCam = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA",
+        newTarget.x + ox, newTarget.y + oy, newTarget.z + oz,
+        0.0, 0.0, 0.0, 70.0, false, 0)
+
+    PointCamAtCoord(newCam, newTarget.x, newTarget.y, newTarget.z)
+
+    -- Find previous camera to interp from (ours or stock illenium's)
+    local prevCam = orbitCam or GetRenderingCam()
+    if prevCam and prevCam ~= -1 and DoesCamExist(prevCam) then
+        SetCamActiveWithInterp(newCam, prevCam, 250, 0, 0)
+        orbitOldCam = (prevCam ~= orbitCam) and nil or orbitCam -- only destroy our old cams
+    else
+        SetCamActive(newCam, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
+
+    orbitCam = newCam
+    changingCam = false -- unlock immediately so user can drag during interp
+
+    -- Destroy old cam after interp completes
+    if orbitOldCam then
+        SetTimeout(300, function()
+            if orbitOldCam then
+                DestroyCam(orbitOldCam, true)
+                orbitOldCam = nil
+            end
+        end)
     end
 end
 
--- NUI callback: mouse drag adjusts orbit angles
+-- NUI callback: mouse drag adjusts orbit angles (event-driven, no thread)
 RegisterNUICallback("murderface_rotate", function(data, cb)
     cb(1)
-    local dx = tonumber(data.deltaX) or tonumber(data.delta) or 0
+    if changingCam then return end
+    local dx = tonumber(data.deltaX) or 0
     local dy = tonumber(data.deltaY) or 0
 
-    -- Horizontal orbit (yaw)
-    orbitAngleZ = orbitAngleZ - dx * 0.008  -- FMRP: inverted for natural drag direction
+    orbitAngleZ = orbitAngleZ - dx * 0.3   -- horizontal orbit
+    orbitAngleY = math.max(-20.0, math.min(89.0, orbitAngleY + dy * 0.3)) -- vertical, clamped
 
-    -- Vertical orbit (pitch) — clamp to avoid flipping
-    orbitAngleY = math.max(-0.8, math.min(0.8, orbitAngleY - dy * 0.005))  -- FMRP: inverted
+    updateCamPosition()
 end)
 
 -- NUI callback: scroll wheel adjusts zoom distance
 RegisterNUICallback("murderface_zoom", function(data, cb)
     cb(1)
     local delta = tonumber(data.delta) or 0
-    orbitDistance = math.max(0.5, math.min(4.0, orbitDistance + delta * 0.15))
+    orbitDistance = math.max(0.3, math.min(3.0, orbitDistance + delta * 0.1))
+    updateCamPosition()
 end)
 
--- Override camera presets to work with orbital system
+-- Override camera presets — just changes target + distance, orbit keeps working
 RegisterNUICallback("appearance_set_camera", function(camera, cb)
     cb(1)
-    local preset = ORBIT_PRESETS[camera] or ORBIT_PRESETS.default
-    orbitTargetZ = preset.z
-    orbitDistance = preset.dist
-    orbitAngleY = preset.pitch
-
-    -- Start orbital camera if not yet running
-    if not orbitCamActive then
-        startOrbitCamera()
-    end
+    local ped = PlayerPedId()
+    moveCamera(ped, camera)
 end)
-
--- Hook into customization lifecycle to start/stop orbital camera
-AddEventHandler("murderface-appearance:startOrbit", startOrbitCamera)
-AddEventHandler("murderface-appearance:stopOrbit", stopOrbitCamera)
 
 -- Get shop costs + player cash balance for the UI
 RegisterNUICallback("murderface_get_shop_info", function(_, cb)
