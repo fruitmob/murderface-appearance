@@ -97,6 +97,26 @@
     await store.changeTexture(type, sel.id, newTex);
   }
 
+  async function handleDrawableStep(delta) {
+    const sel = getSelected();
+    if (!sel) return;
+    const items = getItems();
+    const maxDrawable = items.length > 0 ? items[items.length - 1].drawable : 0;
+    const newDrawable = Math.max(0, Math.min(maxDrawable, sel.drawable + delta));
+    await handleItemClick({ ...sel, drawable: newDrawable });
+  }
+
+  async function handleDrawableInput(e) {
+    const val = parseInt(e.target.value);
+    if (isNaN(val)) return;
+    const sel = getSelected();
+    if (!sel) return;
+    const items = getItems();
+    const maxDrawable = items.length > 0 ? items[items.length - 1].drawable : 0;
+    const clamped = Math.max(0, Math.min(maxDrawable, val));
+    await handleItemClick({ ...sel, drawable: clamped });
+  }
+
   // ---- TABS SCROLL ----
   let tabsEl = $state(null);
   function scrollTabsLeft() { if (tabsEl) tabsEl.scrollLeft -= 120; }
@@ -210,6 +230,13 @@
 
     <p class="section-desc" style="padding: 0 16px 6px;">Browse and purchase clothing items.</p>
 
+    <!-- Clothing Toggle Buttons -->
+    <div class="clothing-toggles">
+      <button class="toggle-btn" onclick={() => store.removeClothes('head')}>Toggle Head</button>
+      <button class="toggle-btn" onclick={() => store.removeClothes('body')}>Toggle Top</button>
+      <button class="toggle-btn" onclick={() => store.removeClothes('bottom')}>Toggle Bottom</button>
+    </div>
+
     <!-- Search -->
     <div class="search-wrap" style="padding: 0 16px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -278,12 +305,23 @@
             <span class="detail-name">{sel.label}</span>
           </div>
         </div>
-        <div class="texture-controls">
-          <span class="texture-label">Texture</span>
-          <div class="texture-nav">
-            <button class="tex-btn" onclick={() => handleTextureChange(-1)}>‹</button>
-            <span class="tex-value">{sel.texture} / {sel.maxTexture}</span>
-            <button class="tex-btn" onclick={() => handleTextureChange(1)}>›</button>
+        <div class="detail-controls">
+          <div class="control-group">
+            <span class="control-label">Drawable</span>
+            <div class="control-nav">
+              <button class="tex-btn" onclick={() => handleDrawableStep(-1)}>‹</button>
+              <input class="drawable-input" type="number" min="0" value={sel.drawable}
+                onchange={handleDrawableInput} />
+              <button class="tex-btn" onclick={() => handleDrawableStep(1)}>›</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Texture</span>
+            <div class="control-nav">
+              <button class="tex-btn" onclick={() => handleTextureChange(-1)}>‹</button>
+              <span class="tex-value">{sel.texture} / {sel.maxTexture}</span>
+              <button class="tex-btn" onclick={() => handleTextureChange(1)}>›</button>
+            </div>
           </div>
         </div>
         <button class="remove-btn" title="Remove item"
@@ -647,6 +685,36 @@
   .card.selected .card-label { color: var(--text-primary); font-weight: 700; }
 
   .card-equipped { font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; }
+
+  /* ============ CLOTHING TOGGLES ============ */
+  .clothing-toggles {
+    display: flex; gap: 6px; padding: 0 16px 8px; flex-shrink: 0;
+  }
+  .toggle-btn {
+    flex: 1; padding: 6px 0; border-radius: 6px;
+    font-size: 11px; font-weight: 500; font-family: var(--font);
+    color: var(--text-secondary); background: rgba(18, 19, 24, 0.8);
+    border: 1px solid rgba(30, 32, 40, 0.4); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+  .toggle-btn:active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+
+  .drawable-input {
+    width: 42px; text-align: center; padding: 2px 4px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--accent); font-size: 12px;
+    font-family: var(--font); font-weight: 600; outline: none;
+    -moz-appearance: textfield;
+  }
+  .drawable-input::-webkit-inner-spin-button,
+  .drawable-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .drawable-input:focus { border-color: var(--accent-border); }
+
+  .detail-controls { display: flex; gap: 12px; align-items: center; }
+  .control-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .control-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+  .control-nav { display: flex; align-items: center; gap: 4px; }
 
   /* ============ DETAIL BAR ============ */
   .detail-bar {

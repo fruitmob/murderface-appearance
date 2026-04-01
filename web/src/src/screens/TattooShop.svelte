@@ -88,6 +88,21 @@
     await store.previewTattoo(store.appearance?.tattoos, withOpacity);
   }
 
+  // Quick preview navigation with arrows
+  let previewIndex = $state(-1);
+
+  function stepPreview(delta) {
+    const tattoos = getTattoos();
+    if (tattoos.length === 0) return;
+    // Flatten grouped list
+    const flat = getGroupedTattoos().flatMap(([_, tats]) => tats);
+    if (flat.length === 0) return;
+    previewIndex = Math.max(0, Math.min(flat.length - 1, previewIndex + delta));
+    const tattoo = flat[previewIndex];
+    expandedTattoo = tattoo.name;
+    handlePreview(tattoo);
+  }
+
   let zoneNavEl;
   function scrollZonesLeft() { if (zoneNavEl) zoneNavEl.scrollLeft -= 100; }
   function scrollZonesRight() { if (zoneNavEl) zoneNavEl.scrollLeft += 100; }
@@ -117,6 +132,15 @@
     </svg>
     <input class="search-input" type="text" placeholder="Search tattoos..."
       bind:value={searchQuery} />
+  </div>
+
+  <!-- Quick Preview Nav -->
+  <div class="preview-nav" style="padding: 0 16px 6px; display: flex; align-items: center; gap: 8px;">
+    <button class="step-btn" onclick={() => stepPreview(-1)}>&#8249;</button>
+    <span style="font-size: 11px; color: var(--text-muted); flex: 1; text-align: center;">
+      {previewIndex >= 0 ? `Preview ${previewIndex + 1} / ${getGroupedTattoos().flatMap(([_,t])=>t).length}` : 'Use arrows to preview'}
+    </span>
+    <button class="step-btn" onclick={() => stepPreview(1)}>&#8250;</button>
   </div>
 
   <!-- Tattoo list grouped by collection -->

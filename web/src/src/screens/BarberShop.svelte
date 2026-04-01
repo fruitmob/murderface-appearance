@@ -119,7 +119,17 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.color ?? 0}
             oninput={(e) => store.changeHair({ color: parseInt(e.target.value) })} />
-          <div class="color-gradient-hair"></div>
+          {#if store.settings?.hair?.color?.items?.length > 0}
+            <div class="color-picker">
+              {#each store.settings.hair.color.items as rgb, i}
+                <button class="color-dot" class:active={(store.appearance?.hair?.color ?? 0) === i}
+                  style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                  onclick={() => store.changeHair({ color: i })} />
+              {/each}
+            </div>
+          {:else}
+            <div class="color-gradient-hair"></div>
+          {/if}
         </div>
 
         <div class="slider-group">
@@ -130,7 +140,17 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.highlight ?? 0}
             oninput={(e) => store.changeHair({ highlight: parseInt(e.target.value) })} />
-          <div class="color-gradient-hair"></div>
+          {#if store.settings?.hair?.highlight?.items?.length > 0}
+            <div class="color-picker">
+              {#each store.settings.hair.highlight.items as rgb, i}
+                <button class="color-dot" class:active={(store.appearance?.hair?.highlight ?? 0) === i}
+                  style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                  onclick={() => store.changeHair({ highlight: i })} />
+              {/each}
+            </div>
+          {:else}
+            <div class="color-gradient-hair"></div>
+          {/if}
         </div>
 
         <div class="slider-group">

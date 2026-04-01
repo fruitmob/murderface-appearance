@@ -67,37 +67,12 @@
   ];
 
   const EYE_COLORS = [
-    { name: 'Green',        color: '#228B22' },
-    { name: 'Emerald',      color: '#50C878' },
-    { name: 'Light Blue',   color: '#87CEEB' },
-    { name: 'Ocean Blue',   color: '#1E90FF' },
-    { name: 'Light Brown',  color: '#C4A882' },
-    { name: 'Dark Brown',   color: '#654321' },
-    { name: 'Hazel',        color: '#8E7618' },
-    { name: 'Dark Gray',    color: '#555555' },
-    { name: 'Light Gray',   color: '#A9A9A9' },
-    { name: 'Pink',         color: '#FF69B4' },
-    { name: 'Yellow',       color: '#FFD700' },
-    { name: 'Purple',       color: '#8B008B' },
-    { name: 'Blackout',     color: '#111111' },
-    { name: 'Shades of Gray', color: '#808080' },
-    { name: 'Tequila Sunrise', color: '#FF6347' },
-    { name: 'Atomic',       color: '#7FFF00' },
-    { name: 'Warp',         color: '#9400D3' },
-    { name: 'ECola',        color: '#DC143C' },
-    { name: 'Space Ranger', color: '#00CED1' },
-    { name: 'Ying Yang',    color: '#F0F0F0' },
-    { name: 'Bullseye',     color: '#FF4500' },
-    { name: 'Lizard',       color: '#6B8E23' },
-    { name: 'Dragon',       color: '#B22222' },
-    { name: 'Extra Terrestrial', color: '#32CD32' },
-    { name: 'Goat',         color: '#DAA520' },
-    { name: 'Smiley',       color: '#FFFF00' },
-    { name: 'Possessed',    color: '#4B0082' },
-    { name: 'Demon',        color: '#8B0000' },
-    { name: 'Infected',     color: '#ADFF2F' },
-    { name: 'Alien',        color: '#00FF00' },
-    { name: 'Undead',       color: '#D3D3D3' },
+    'Green', 'Emerald', 'Light Blue', 'Ocean Blue', 'Light Brown',
+    'Dark Brown', 'Hazel', 'Dark Gray', 'Light Gray', 'Pink',
+    'Yellow', 'Purple', 'Blackout', 'Shades of Gray', 'Tequila Sunrise',
+    'Atomic', 'Warp', 'ECola', 'Space Ranger', 'Ying Yang',
+    'Bullseye', 'Lizard', 'Dragon', 'Extra Terrestrial', 'Goat',
+    'Smiley', 'Possessed', 'Demon', 'Infected', 'Alien', 'Undead'
   ];
 
   function setSection(s) {
@@ -408,7 +383,17 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.color ?? 0}
             oninput={(e) => store.changeHair({ color: parseInt(e.target.value) })} />
-          <div class="color-gradient-hair"></div>
+          {#if store.settings?.hair?.color?.items?.length > 0}
+            <div class="color-picker">
+              {#each store.settings.hair.color.items as rgb, i}
+                <button class="color-dot" class:active={(store.appearance?.hair?.color ?? 0) === i}
+                  style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                  onclick={() => store.changeHair({ color: i })} />
+              {/each}
+            </div>
+          {:else}
+            <div class="color-gradient-hair"></div>
+          {/if}
         </div>
 
         <div class="slider-group">
@@ -419,7 +404,17 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.highlight ?? 0}
             oninput={(e) => store.changeHair({ highlight: parseInt(e.target.value) })} />
-          <div class="color-gradient-hair"></div>
+          {#if store.settings?.hair?.highlight?.items?.length > 0}
+            <div class="color-picker">
+              {#each store.settings.hair.highlight.items as rgb, i}
+                <button class="color-dot" class:active={(store.appearance?.hair?.highlight ?? 0) === i}
+                  style="background:rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+                  onclick={() => store.changeHair({ highlight: i })} />
+              {/each}
+            </div>
+          {:else}
+            <div class="color-gradient-hair"></div>
+          {/if}
         </div>
 
         <div class="slider-group">
@@ -484,14 +479,13 @@
         <h3 class="section-title">Eye Color</h3>
         <p class="section-desc">Pick your eye color.</p>
         <div class="eye-grid">
-          {#each EYE_COLORS as ec, i}
+          {#each EYE_COLORS as color, i}
             <button
               class="eye-btn"
               class:active={store.appearance?.eyeColor === i}
-              style="background: linear-gradient(135deg, {ec.color}, {ec.color}88);"
               onclick={() => store.changeEyeColor(i)}
             >
-              {ec.name}
+              {color}
             </button>
           {/each}
         </div>
@@ -775,26 +769,23 @@
   }
 
   .eye-btn {
-    padding: 10px 6px;
+    padding: 8px 6px;
     border-radius: var(--radius-sm);
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     font-family: var(--font);
-    color: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(25, 28, 36, 0.6);
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid rgba(25, 28, 36, 0.6);
     cursor: pointer;
     transition: all 0.15s;
     text-align: center;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
-  .eye-btn:hover { border-color: rgba(255, 255, 255, 0.4); transform: translateY(-1px); }
+  .eye-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
   .eye-btn.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 12px rgba(0, 255, 235, 0.5);
-    font-weight: 700;
+    color: var(--accent);
+    background: var(--bg-card-selected);
+    border-color: rgba(0, 255, 235, 0.5);
+    font-weight: 600;
   }
 </style>
