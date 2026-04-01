@@ -548,6 +548,10 @@ function client.startPlayerCustomization(cb, conf)
     reverseCamera = false
     isCameraInterpolating = false
 
+    -- FMRP: Ensure ped is visible (fixes invisible character bug)
+    SetEntityVisible(cache.ped, true, false)
+    SetEntityAlpha(cache.ped, 255, false)
+
     setCamera("default")
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)

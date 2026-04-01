@@ -76,7 +76,11 @@
   }
 
   async function handleRemove(tattoo) {
-    await store.deleteTattoo(tattoo);
+    // Build updated tattoos with this tattoo filtered out
+    const currentZoneTattoos = (store.appearance?.tattoos?.[activeZone] || [])
+      .filter(t => t.name !== tattoo.name);
+    const updatedTattoos = { ...store.appearance?.tattoos, [activeZone]: currentZoneTattoos };
+    await store.deleteTattoo(updatedTattoos);
   }
 
   async function handlePreview(tattoo) {

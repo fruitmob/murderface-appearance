@@ -354,11 +354,22 @@ export function createAppearanceStore() {
     // ---- MODEL ----
 
     async changeModel(model) {
+      // Preserve model items list — backend doesn't resend it on model change
+      const savedModelItems = settings?.model?.items;
       const result = await fetchNui('appearance_change_model', model);
       if (result) {
         settings = result.appearanceSettings || settings;
         appearance = result.appearanceData || appearance;
+        // Restore model items if they were cleared
+        if (savedModelItems && settings) {
+          if (!settings.model) settings.model = {};
+          if (!settings.model.items || settings.model.items.length === 0) {
+            settings.model.items = savedModelItems;
+          }
+        }
       }
+      // Update gender
+      gender = (model === 'mp_f_freemode_01') ? 1 : 0;
       return result;
     },
 

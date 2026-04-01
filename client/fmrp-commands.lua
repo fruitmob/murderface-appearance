@@ -6,7 +6,14 @@ local function openCustomization(conf)
     for k, v in pairs(conf) do config[k] = v end
     config.enableExit = true
 
+    -- Ensure ped is visible and frozen before opening menu
+    local ped = cache.ped
+    SetEntityVisible(ped, true, false)
+    SetEntityAlpha(ped, 255, false)
+    FreezeEntityPosition(ped, true)
+
     client.startPlayerCustomization(function(appearance)
+        FreezeEntityPosition(cache.ped, false)
         if appearance then
             TriggerServerEvent("illenium-appearance:server:saveAppearance", appearance)
         end
@@ -108,10 +115,10 @@ RegisterNUICallback("murderface_rotate", function(data, cb)
     local dy = tonumber(data.deltaY) or 0
 
     -- Horizontal orbit (yaw)
-    orbitAngleZ = orbitAngleZ + dx * 0.008
+    orbitAngleZ = orbitAngleZ - dx * 0.008  -- FMRP: inverted for natural drag direction
 
     -- Vertical orbit (pitch) — clamp to avoid flipping
-    orbitAngleY = math.max(-0.8, math.min(0.8, orbitAngleY + dy * 0.005))
+    orbitAngleY = math.max(-0.8, math.min(0.8, orbitAngleY - dy * 0.005))  -- FMRP: inverted
 end)
 
 -- NUI callback: scroll wheel adjusts zoom distance

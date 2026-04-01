@@ -84,7 +84,8 @@ end)
 RegisterNUICallback("appearance_apply_tattoo", function(data, cb)
     local paid = not data.tattoo or not Config.ChargePerTattoo or lib.callback.await("illenium-appearance:server:payForTattoo", false, data.tattoo)
     if paid then
-        client.addPedTattoo(cache.ped, data.updatedTattoos or data)
+        -- FMRP: Use setPedTattoos instead of addPedTattoo to persist to PED_TATTOOS cache
+        client.setPedTattoos(cache.ped, data.updatedTattoos or data)
     end
     cb(paid)
 end)
@@ -96,7 +97,8 @@ end)
 
 RegisterNUICallback("appearance_delete_tattoo", function(data, cb)
     cb(1)
-    client.removePedTattoo(cache.ped, data)
+    -- FMRP: data is now the full updatedTattoos object (with tattoo removed)
+    client.setPedTattoos(cache.ped, data)
 end)
 
 RegisterNUICallback("appearance_wear_clothes", function(dataWearClothes, cb)
@@ -120,6 +122,39 @@ end)
 RegisterNUICallback("appearance_exit", function(_, cb)
     cb(1)
     client.exitPlayerCustomization()
+end)
+
+-- FMRP: Outfit NUI callback handlers (bridge to server events/callbacks)
+RegisterNUICallback("illenium-appearance:getOutfits", function(_, cb)
+    local outfits = lib.callback.await("illenium-appearance:server:getOutfits", false)
+    cb(outfits or {})
+end)
+
+RegisterNUICallback("illenium-appearance:saveOutfit", function(data, cb)
+    TriggerServerEvent("illenium-appearance:server:saveOutfit", data.name, data.model, data.components, data.props)
+    Wait(300) -- Let server process before confirming
+    cb(1)
+end)
+
+RegisterNUICallback("illenium-appearance:deleteOutfit", function(id, cb)
+    TriggerServerEvent("illenium-appearance:server:deleteOutfit", id)
+    Wait(300)
+    cb(1)
+end)
+
+RegisterNUICallback("illenium-appearance:generateOutfitCode", function(outfitId, cb)
+    local code = lib.callback.await("illenium-appearance:server:generateOutfitCode", false, outfitId)
+    cb(code or "")
+end)
+
+RegisterNUICallback("illenium-appearance:importOutfitCode", function(data, cb)
+    local success = lib.callback.await("illenium-appearance:server:importOutfitCode", false, data.code, data.name)
+    cb(success or false)
+end)
+
+RegisterNUICallback("illenium-appearance:renameOutfit", function(data, cb)
+    -- Rename not in vanilla illenium server — skip for now
+    cb(1)
 end)
 
 RegisterNUICallback("rotate_left", function(_, cb)
