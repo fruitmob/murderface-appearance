@@ -59,6 +59,7 @@
     await store.show();
     sections = buildSections(store.config);
     screenMode = autoDetectScreen(store.config);
+    strippedRegions = { head: false, body: false, bottom: false };
   });
   const cleanupHide = onNuiMessage('appearance_hide', () => store.hide());
   onDestroy(() => {
@@ -180,7 +181,6 @@
 {#if store.visible && screenMode}
 <div class="app" style={isDev ? `background-image: url(${gtaBg});` : ''}
   onmousedown={handleMouseDown}
-  onmouseup={handleMouseUp}
   onmousemove={handleMouseMove}
   onwheel={handleWheel}
   role="application">
@@ -507,39 +507,6 @@
     border-color: var(--accent-border);
   }
 
-  /* ============ SEARCH ============ */
-  .search {
-    margin: 10px 16px;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .search input {
-    width: 100%;
-    padding: 10px 10px 10px 36px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    font-size: 13px;
-    font-family: var(--font);
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .search input:focus { border-color: var(--accent-border); }
-  .search input::placeholder { color: var(--text-muted); }
-
-  .search-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 16px;
-    height: 16px;
-    color: var(--text-muted);
-  }
-
   /* ============ TABS ============ */
   .tabs-wrapper {
     display: flex;
@@ -674,21 +641,6 @@
     color: var(--text-muted);
   }
 
-  .owned-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(0, 180, 140, 0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
   .card-info {
     padding: 10px 12px;
     display: flex;
@@ -749,11 +701,6 @@
   .detail-label { font-size: 11px; font-weight: 700; color: var(--accent); opacity: 0.6; letter-spacing: 2px; }
   .detail-row { display: flex; gap: 12px; align-items: baseline; margin-top: 4px; }
   .detail-name { font-size: 17px; font-weight: 600; }
-  .detail-price { font-size: 17px; font-weight: 700; color: var(--accent); }
-
-  .texture-controls { text-align: center; }
-  .texture-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); display: block; margin-bottom: 4px; }
-  .texture-nav { display: flex; align-items: center; gap: 8px; }
   .tex-btn {
     width: 28px; height: 28px;
     border-radius: 6px;

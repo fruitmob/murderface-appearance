@@ -81,6 +81,16 @@
     return store.settings?.headOverlays?.[key]?.color?.items || null;
   }
 
+  function getHairColorMax(field) {
+    const items = store.settings?.hair?.[field]?.items;
+    return items?.length > 0 ? items.length - 1 : 63;
+  }
+
+  function getOverlayColorMax(key) {
+    const items = getOverlayColorItems(key);
+    return items?.length > 0 ? items.length - 1 : 63;
+  }
+
 </script>
 
 <div class="barber">
@@ -121,7 +131,7 @@
             <span>Color</span>
             <span class="slider-value">{store.appearance?.hair?.color ?? 0}</span>
           </label>
-          <input type="range" class="slider accent" min="0" max="63" step="1"
+          <input type="range" class="slider accent" min="0" max={getHairColorMax('color')} step="1"
             value={store.appearance?.hair?.color ?? 0}
             oninput={(e) => store.changeHair({ color: parseInt(e.target.value) })} />
           {#if store.settings?.hair?.color?.items?.length > 0}
@@ -142,7 +152,7 @@
             <span>Highlight</span>
             <span class="slider-value">{store.appearance?.hair?.highlight ?? 0}</span>
           </label>
-          <input type="range" class="slider accent" min="0" max="63" step="1"
+          <input type="range" class="slider accent" min="0" max={getHairColorMax('highlight')} step="1"
             value={store.appearance?.hair?.highlight ?? 0}
             oninput={(e) => store.changeHair({ highlight: parseInt(e.target.value) })} />
           {#if store.settings?.hair?.highlight?.items?.length > 0}
@@ -213,7 +223,7 @@
                     <span>Color</span>
                     <span class="slider-value">{getOverlayColor(overlay.key)}</span>
                   </label>
-                  <input type="range" class="slider accent" min="0" max="63" step="1"
+                  <input type="range" class="slider accent" min="0" max={getOverlayColorMax(overlay.key)} step="1"
                     value={getOverlayColor(overlay.key)}
                     oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
                   {#if colorItems?.length > 0}
@@ -274,7 +284,7 @@
                     <span>Color</span>
                     <span class="slider-value">{getOverlayColor(overlay.key)}</span>
                   </label>
-                  <input type="range" class="slider accent" min="0" max="63" step="1"
+                  <input type="range" class="slider accent" min="0" max={getOverlayColorMax(overlay.key)} step="1"
                     value={getOverlayColor(overlay.key)}
                     oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
                   {#if colorItems?.length > 0}

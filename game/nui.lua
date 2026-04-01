@@ -48,6 +48,7 @@ end
 local function destroyOrbitCameras()
     if orbitCam then DestroyCam(orbitCam, true); orbitCam = nil end
     if orbitOldCam then DestroyCam(orbitOldCam, true); orbitOldCam = nil end
+    RenderScriptCams(false, false, 0, true, true)
     orbitTargetCoords = nil
     changingCam = false
 end
@@ -177,11 +178,6 @@ RegisterNUICallback("appearance_turn_around", function(_, cb)
     updateCamPosition()
 end)
 
-RegisterNUICallback("appearance_rotate_camera", function(direction, cb)
-    cb(1)
-    client.rotateCamera(direction)
-end)
-
 RegisterNUICallback("murderface_rotate", function(data, cb)
     cb(1)
     if changingCam then return end
@@ -248,11 +244,17 @@ RegisterNUICallback("appearance_change_eye_color", function(eyeColor, cb)
 end)
 
 RegisterNUICallback("appearance_apply_tattoo", function(data, cb)
-    local paid = not data.tattoo or not Config.ChargePerTattoo or lib.callback.await("illenium-appearance:server:payForTattoo", false, data.tattoo)
-    if paid then
-        client.setPedTattoos(cache.ped, data.updatedTattoos or data)
+    -- Apply tattoo immediately, handle payment in background
+    if data.updatedTattoos then
+        client.setPedTattoos(cache.ped, data.updatedTattoos)
     end
-    cb(paid)
+    cb(true)
+    -- Charge after cb to avoid blocking NUI
+    if data.tattoo and Config.ChargePerTattoo then
+        CreateThread(function()
+            lib.callback.await("illenium-appearance:server:payForTattoo", false, data.tattoo)
+        end)
+    end
 end)
 
 RegisterNUICallback("appearance_preview_tattoo", function(previewTattoo, cb)
@@ -372,6 +374,8 @@ end)
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         destroyOrbitCameras()
-        FreezeEntityPosition(cache.ped, false)
+        if cache.ped and DoesEntityExist(cache.ped) then
+            FreezeEntityPosition(cache.ped, false)
+        end
     end
 end)

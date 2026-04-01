@@ -136,7 +136,7 @@ export function createAppearanceStore() {
         settings = settingsRes?.appearanceSettings || settingsRes;
         config = dataRes?.config;
         appearance = dataRes?.appearanceData;
-        originalAppearance = JSON.parse(JSON.stringify(appearance));
+        originalAppearance = appearance ? JSON.parse(JSON.stringify(appearance)) : null;
 
         // Detect gender from appearance model
         if (appearance?.model) {

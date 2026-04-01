@@ -28,12 +28,16 @@ export async function fetchNui(event, data = {}) {
   }
 
   const url = `https://${getResourceName()}/${event}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return response.json();
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -129,7 +133,7 @@ function getMockConfig() {
 function getMockSettings() {
   const mkRange = (min, max) => ({ min, max });
   return {
-    model: {
+    ped: { model: {
       items: [
         'mp_m_freemode_01', 'mp_f_freemode_01',
         // Animals
@@ -176,7 +180,7 @@ function getMockSettings() {
         // Player models
         'player_one', 'player_two', 'player_zero',
       ],
-    },
+    } },
     components: Array.from({ length: 12 }, (_, i) => ({
       component_id: i,
       drawable: mkRange(0, 10 + i),
