@@ -126,6 +126,7 @@ function InitializeCharacter(gender, onSubmit, onCancel)
 end
 
 function OpenShop(config, isPedMenu, shopType)
+    currentShopType = shopType or "clothing" -- FMRP: track for murderface_get_shop_info NUI callback
     lib.callback("illenium-appearance:server:hasMoney", false, function(hasMoney, money)
         if not hasMoney and not isPedMenu then
             lib.notify({

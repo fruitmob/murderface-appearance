@@ -73,17 +73,12 @@
   }
 
   function getOverlayMax(key) {
-    const overlays = store.settings?.headOverlays;
-    if (!overlays) return key === 'beard' || key === 'eyebrows' || key === 'chestHair' ? 30 : 15;
-    const found = Array.isArray(overlays) ? overlays.find(o => o.id === key) : overlays[key];
-    return found?.style?.max ?? found?.max ?? 15;
+    const overlay = store.settings?.headOverlays?.[key];
+    return overlay?.style?.max ?? 15;
   }
 
-  function getOverlayColorItems(overlayKey) {
-    const overlays = store.settings?.headOverlays;
-    if (!overlays) return null;
-    const found = Array.isArray(overlays) ? overlays.find(o => o.id === overlayKey) : overlays[overlayKey];
-    return found?.color?.items || null;
+  function getOverlayColorItems(key) {
+    return store.settings?.headOverlays?.[key]?.color?.items || null;
   }
 
 </script>

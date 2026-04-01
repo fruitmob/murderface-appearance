@@ -1,7 +1,10 @@
 -- FMRP: Slash commands + smooth camera controls + shop info for murderface-appearance
 
+currentShopType = "clothing" -- Global: tracks which command opened the menu (also set by OpenShop in client.lua)
+
 -- Helper: open customization with specific config
-local function openCustomization(conf)
+local function openCustomization(conf, shopType)
+    currentShopType = shopType or "clothing"
     local config = GetDefaultConfig()
     for k, v in pairs(conf) do config[k] = v end
     config.enableExit = true
@@ -22,22 +25,22 @@ end
 
 -- /clothing — clothing only (components + props)
 RegisterCommand("clothing", function()
-    openCustomization({ components = true, props = true })
+    openCustomization({ components = true, props = true }, "clothing")
 end, false)
 
 -- /barber — hair + head overlays only
 RegisterCommand("barber", function()
-    openCustomization({ headOverlays = true })
+    openCustomization({ headOverlays = true }, "barber")
 end, false)
 
 -- /tattoo — tattoos only
 RegisterCommand("tattoo", function()
-    openCustomization({ tattoos = true })
+    openCustomization({ tattoos = true }, "tattoo")
 end, false)
 
 -- /outfits — full clothing + outfits screen
 RegisterCommand("outfits", function()
-    openCustomization({ components = true, props = true })
+    openCustomization({ components = true, props = true }, "clothing")
 end, false)
 
 -- Event: server triggers full appearance menu on this client (used by /appearance [id])
@@ -50,7 +53,7 @@ RegisterNetEvent("murderface-appearance:client:openFullMenu", function()
         components = true,
         props = true,
         tattoos = true,
-    })
+    }, "surgeon")
 end)
 
 -- ============ ORBITAL CAMERA SYSTEM ============
@@ -148,7 +151,7 @@ AddEventHandler("murderface-appearance:stopOrbit", stopOrbitCamera)
 
 -- Get shop costs + player cash balance for the UI
 RegisterNUICallback("murderface_get_shop_info", function(_, cb)
-    local shopType = client.getShopType and client.getShopType() or "clothing"
+    local shopType = currentShopType or "clothing"
     local cost = Config.ClothingCost or 100
     if shopType == "barber" then
         cost = Config.BarberCost or 100
