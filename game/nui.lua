@@ -1,5 +1,152 @@
 local client = client
 
+-- ============ SHOP TYPE TRACKING ============
+currentShopType = "clothing" -- Global: set by commands and OpenShop in client.lua
+
+-- ============ ORBITAL CAMERA SYSTEM ============
+-- Event-driven orbital camera. Presets change target + distance, drag always works.
+
+local orbitAngleZ = 0.0
+local orbitAngleY = 0.0
+local orbitDistance = 1.8
+local orbitTargetCoords = nil
+local orbitCam = nil
+local orbitOldCam = nil
+local changingCam = false
+local CAM_FOV = 49.0
+
+local CAMERA_BONES = {
+    default = 0,
+    head    = 31086,    -- SKEL_Head
+    body    = 24818,    -- SKEL_Spine3
+    bottom  = 16335,    -- l_thigh
+}
+
+local CAMERA_DISTANCES = {
+    default = 1.8,
+    head    = 0.8,
+    body    = 1.1,
+    bottom  = 1.0,
+}
+
+local function getOrbitOffset()
+    local radZ = math.rad(orbitAngleZ)
+    local radY = math.rad(orbitAngleY)
+    return
+        math.cos(radZ) * math.cos(radY) * orbitDistance,
+        math.sin(radZ) * math.cos(radY) * orbitDistance,
+        math.sin(radY) * orbitDistance
+end
+
+local function updateCamPosition()
+    if not orbitCam or not orbitTargetCoords or changingCam then return end
+    local ox, oy, oz = getOrbitOffset()
+    SetCamCoord(orbitCam, orbitTargetCoords.x + ox, orbitTargetCoords.y + oy, orbitTargetCoords.z + oz)
+    PointCamAtCoord(orbitCam, orbitTargetCoords.x, orbitTargetCoords.y, orbitTargetCoords.z)
+end
+
+local function destroyOrbitCameras()
+    if orbitCam then DestroyCam(orbitCam, true); orbitCam = nil end
+    if orbitOldCam then DestroyCam(orbitOldCam, true); orbitOldCam = nil end
+    orbitTargetCoords = nil
+    changingCam = false
+end
+
+local function getBoneCoords(ped, preset)
+    local boneId = CAMERA_BONES[preset] or CAMERA_BONES.default
+    if boneId == 0 then
+        local coords = GetEntityCoords(ped)
+        return vector3(coords.x, coords.y, coords.z + 0.2)
+    end
+    return GetPedBoneCoords(ped, boneId, 0.0, 0.0, 0.0)
+end
+
+local function moveCamera(ped, preset)
+    local newTarget = getBoneCoords(ped, preset)
+    local newDist = CAMERA_DISTANCES[preset] or 1.8
+
+    changingCam = true
+    orbitDistance = newDist
+    orbitAngleZ = GetEntityHeading(ped) + 180.0
+    orbitTargetCoords = newTarget
+
+    local ox, oy, oz = getOrbitOffset()
+    local newCam = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA",
+        newTarget.x + ox, newTarget.y + oy, newTarget.z + oz,
+        0.0, 0.0, 0.0, CAM_FOV, false, 0)
+    PointCamAtCoord(newCam, newTarget.x, newTarget.y, newTarget.z)
+
+    local prevCam = orbitCam or GetRenderingCam()
+    if prevCam and prevCam ~= -1 and DoesCamExist(prevCam) then
+        SetCamActiveWithInterp(newCam, prevCam, 400, 1, 1)
+        orbitOldCam = prevCam
+    else
+        SetCamActive(newCam, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
+
+    orbitCam = newCam
+
+    SetTimeout(450, function()
+        changingCam = false
+        if orbitOldCam and orbitOldCam ~= orbitCam then
+            DestroyCam(orbitOldCam, true)
+            orbitOldCam = nil
+        end
+    end)
+end
+
+-- ============ SLASH COMMANDS ============
+
+local function openCustomization(conf, shopType)
+    currentShopType = shopType or "clothing"
+    local config = GetDefaultConfig()
+    for k, v in pairs(conf) do config[k] = v end
+    config.enableExit = true
+
+    local ped = cache.ped
+    SetEntityVisible(ped, true, false)
+    SetEntityAlpha(ped, 255, false)
+    FreezeEntityPosition(ped, true)
+
+    client.startPlayerCustomization(function(appearance)
+        FreezeEntityPosition(cache.ped, false)
+        if appearance then
+            TriggerServerEvent("illenium-appearance:server:saveAppearance", appearance)
+        end
+    end, config)
+end
+
+RegisterCommand("clothing", function()
+    openCustomization({ components = true, props = true }, "clothing")
+end, false)
+
+RegisterCommand("barber", function()
+    openCustomization({ headOverlays = true }, "barber")
+end, false)
+
+RegisterCommand("tattoo", function()
+    openCustomization({ tattoos = true }, "tattoo")
+end, false)
+
+RegisterCommand("outfits", function()
+    openCustomization({ components = true, props = true }, "clothing")
+end, false)
+
+RegisterNetEvent("murderface-appearance:client:openFullMenu", function()
+    openCustomization({
+        ped = true,
+        headBlend = true,
+        faceFeatures = true,
+        headOverlays = true,
+        components = true,
+        props = true,
+        tattoos = true,
+    }, "surgeon")
+end)
+
+-- ============ NUI CALLBACKS ============
+
 RegisterNUICallback("appearance_get_locales", function(_, cb)
     cb(Locales[GetConvar("illenium-appearance:locale", "en")].UI)
 end)
@@ -20,17 +167,36 @@ end)
 
 RegisterNUICallback("appearance_set_camera", function(camera, cb)
     cb(1)
-    client.setCamera(camera)
+    moveCamera(PlayerPedId(), camera)
 end)
 
 RegisterNUICallback("appearance_turn_around", function(_, cb)
     cb(1)
-    client.pedTurn(cache.ped, 180.0)
+    if not orbitCam or changingCam then return end
+    orbitAngleZ = orbitAngleZ + 180.0
+    updateCamPosition()
 end)
 
 RegisterNUICallback("appearance_rotate_camera", function(direction, cb)
     cb(1)
     client.rotateCamera(direction)
+end)
+
+RegisterNUICallback("murderface_rotate", function(data, cb)
+    cb(1)
+    if changingCam then return end
+    local dx = tonumber(data.deltaX) or 0
+    local dy = tonumber(data.deltaY) or 0
+    orbitAngleZ = orbitAngleZ - dx * 0.3
+    orbitAngleY = math.max(-20.0, math.min(89.0, orbitAngleY + dy * 0.3))
+    updateCamPosition()
+end)
+
+RegisterNUICallback("murderface_zoom", function(data, cb)
+    cb(1)
+    local delta = tonumber(data.delta) or 0
+    orbitDistance = math.max(0.3, math.min(3.0, orbitDistance + delta * 0.1))
+    updateCamPosition()
 end)
 
 RegisterNUICallback("appearance_change_model", function(model, cb)
@@ -84,7 +250,6 @@ end)
 RegisterNUICallback("appearance_apply_tattoo", function(data, cb)
     local paid = not data.tattoo or not Config.ChargePerTattoo or lib.callback.await("illenium-appearance:server:payForTattoo", false, data.tattoo)
     if paid then
-        -- FMRP: Use setPedTattoos instead of addPedTattoo to persist to PED_TATTOOS cache
         client.setPedTattoos(cache.ped, data.updatedTattoos or data)
     end
     cb(paid)
@@ -97,7 +262,6 @@ end)
 
 RegisterNUICallback("appearance_delete_tattoo", function(data, cb)
     cb(1)
-    -- FMRP: data is now the full updatedTattoos object (with tattoo removed)
     client.setPedTattoos(cache.ped, data)
 end)
 
@@ -113,6 +277,7 @@ end)
 
 RegisterNUICallback("appearance_save", function(appearance, cb)
     cb(1)
+    destroyOrbitCameras()
     client.wearClothes(appearance, "head")
     client.wearClothes(appearance, "body")
     client.wearClothes(appearance, "bottom")
@@ -121,10 +286,12 @@ end)
 
 RegisterNUICallback("appearance_exit", function(_, cb)
     cb(1)
+    destroyOrbitCameras()
     client.exitPlayerCustomization()
 end)
 
--- FMRP: Outfit NUI callback handlers (bridge to server events/callbacks)
+-- ============ OUTFIT CALLBACKS ============
+
 RegisterNUICallback("illenium-appearance:getOutfits", function(_, cb)
     local outfits = lib.callback.await("illenium-appearance:server:getOutfits", false)
     cb(outfits or {})
@@ -132,7 +299,7 @@ end)
 
 RegisterNUICallback("illenium-appearance:saveOutfit", function(data, cb)
     TriggerServerEvent("illenium-appearance:server:saveOutfit", data.name, data.model, data.components, data.props)
-    Wait(300) -- Let server process before confirming
+    Wait(300)
     cb(1)
 end)
 
@@ -153,20 +320,58 @@ RegisterNUICallback("illenium-appearance:importOutfitCode", function(data, cb)
 end)
 
 RegisterNUICallback("illenium-appearance:renameOutfit", function(data, cb)
-    -- Rename not in vanilla illenium server — skip for now
     cb(1)
 end)
 
+-- ============ LEGACY ROTATION (unused with orbital, kept for compat) ============
+
 RegisterNUICallback("rotate_left", function(_, cb)
     cb(1)
-    client.pedTurn(cache.ped, 10.0)
+    if orbitCam then
+        orbitAngleZ = orbitAngleZ + 10.0
+        updateCamPosition()
+    end
 end)
 
 RegisterNUICallback("rotate_right", function(_, cb)
     cb(1)
-    client.pedTurn(cache.ped, -10.0)
+    if orbitCam then
+        orbitAngleZ = orbitAngleZ - 10.0
+        updateCamPosition()
+    end
+end)
+
+-- ============ SHOP INFO ============
+
+RegisterNUICallback("murderface_get_shop_info", function(_, cb)
+    local shopType = currentShopType or "clothing"
+    local cost = Config.ClothingCost or 100
+    if shopType == "barber" then
+        cost = Config.BarberCost or 100
+    elseif shopType == "tattoo" then
+        cost = Config.TattooCost or 100
+    elseif shopType == "surgeon" then
+        cost = Config.SurgeonCost or 100
+    end
+
+    local cash = 0
+    local player = exports.qbx_core:GetPlayerData()
+    if player and player.money then
+        cash = player.money.cash or 0
+    end
+
+    cb({ shopType = shopType, cost = cost, cash = cash })
 end)
 
 RegisterNUICallback("get_theme_configuration", function(_, cb)
     cb(Config.Theme)
+end)
+
+-- ============ CLEANUP ============
+
+AddEventHandler("onResourceStop", function(resource)
+    if resource == GetCurrentResourceName() then
+        destroyOrbitCameras()
+        FreezeEntityPosition(cache.ped, false)
+    end
 end)
