@@ -351,4 +351,75 @@ lib.addCommand("clearstuckprops", { help = _L("commands.clearstuckprops.title") 
     TriggerClientEvent("illenium-appearance:client:ClearStuckProps", source)
 end)
 
+-- FMRP: /appearance [id] — full appearance menu, with optional admin targeting
+lib.addCommand("appearance", {
+    help = "Open full appearance customization",
+    params = {
+        {
+            name = "playerID",
+            type = "number",
+            help = "Target player's server id (admin only)",
+            optional = true
+        },
+    },
+}, function(source, args)
+    if args.playerID then
+        -- Admin only — check ace permission
+        if not IsPlayerAceAllowed(source, "command.pedmenu") then
+            lib.notify(source, {
+                title = "Access Denied",
+                description = "You don't have permission to edit other players",
+                type = "error",
+                position = Config.NotifyOptions.position
+            })
+            return
+        end
+        local citizenID = Framework.GetPlayerID(args.playerID)
+        if citizenID then
+            TriggerClientEvent("murderface-appearance:client:openFullMenu", args.playerID)
+        else
+            lib.notify(source, {
+                title = "Player Not Found",
+                description = "Invalid player ID",
+                type = "error",
+                position = Config.NotifyOptions.position
+            })
+        end
+    else
+        TriggerClientEvent("murderface-appearance:client:openFullMenu", source)
+    end
+end)
+
+-- FMRP: /clearappearance [id] — reset player appearance to defaults
+lib.addCommand("clearappearance", {
+    help = "Reset a player's appearance to defaults",
+    params = {
+        {
+            name = "playerID",
+            type = "number",
+            help = "Target player's server id",
+            optional = false
+        },
+    },
+    restricted = "group.admin"
+}, function(source, args)
+    local citizenID = Framework.GetPlayerID(args.playerID)
+    if citizenID then
+        TriggerClientEvent("illenium-appearance:client:reloadSkin", args.playerID)
+        lib.notify(source, {
+            title = "Appearance Reset",
+            description = "Player " .. args.playerID .. "'s appearance has been reset",
+            type = "success",
+            position = Config.NotifyOptions.position
+        })
+    else
+        lib.notify(source, {
+            title = "Player Not Found",
+            description = "Invalid player ID",
+            type = "error",
+            position = Config.NotifyOptions.position
+        })
+    end
+end)
+
 lib.versionCheck("iLLeniumStudios/illenium-appearance")

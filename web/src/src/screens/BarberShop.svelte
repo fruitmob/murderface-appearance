@@ -11,15 +11,15 @@
   let activeSection = $state('hair');
 
   const FACIAL_OVERLAYS = [
-    { key: 'beard', label: 'Beard' },
-    { key: 'eyebrows', label: 'Eyebrows' },
-    { key: 'chestHair', label: 'Chest Hair' },
+    { key: 'beard', label: 'Beard', hasColor: 'hair' },
+    { key: 'eyebrows', label: 'Eyebrows', hasColor: 'hair' },
+    { key: 'chestHair', label: 'Chest Hair', hasColor: 'hair' },
   ];
 
   const MAKEUP_OVERLAYS = [
-    { key: 'makeUp', label: 'Makeup' },
-    { key: 'blush', label: 'Blush' },
-    { key: 'lipstick', label: 'Lipstick' },
+    { key: 'makeUp', label: 'Makeup', hasColor: 'makeup' },
+    { key: 'blush', label: 'Blush', hasColor: 'makeup' },
+    { key: 'lipstick', label: 'Lipstick', hasColor: 'makeup' },
     { key: 'blemishes', label: 'Blemishes' },
     { key: 'ageing', label: 'Ageing' },
     { key: 'complexion', label: 'Complexion' },
@@ -40,12 +40,46 @@
     return store.appearance?.headOverlays?.[key]?.opacity ?? 0;
   }
 
+  function getOverlayColor(key) {
+    return store.appearance?.headOverlays?.[key]?.color ?? 0;
+  }
+
   async function handleOverlayChange(key, field, value) {
     const current = store.appearance?.headOverlays?.[key] || { style: 0, opacity: 0, color: 0, secondColor: 0 };
     await store.changeHeadOverlay({
       [key]: { ...current, [field]: parseFloat(value) }
     });
   }
+
+  async function resetHair() {
+    await store.changeHair({ style: 0, color: 0, highlight: 0, texture: 0 });
+  }
+
+  async function resetFacialHair() {
+    for (const o of FACIAL_OVERLAYS) {
+      await store.changeHeadOverlay({ [o.key]: { style: 0, opacity: 0, color: 0, secondColor: 0 } });
+    }
+  }
+
+  async function resetMakeup() {
+    for (const o of MAKEUP_OVERLAYS) {
+      await store.changeHeadOverlay({ [o.key]: { style: 0, opacity: 0, color: 0, secondColor: 0 } });
+    }
+  }
+
+  function getHairMax(field) {
+    const val = store.settings?.hair?.[field]?.max;
+    return val ?? (field === 'style' ? 30 : field === 'texture' ? 5 : 63);
+  }
+
+  function getOverlayMax(key) {
+    const overlays = store.settings?.headOverlays;
+    if (!overlays) return key === 'beard' || key === 'eyebrows' || key === 'chestHair' ? 30 : 15;
+    const found = Array.isArray(overlays) ? overlays.find(o => o.id === key) : overlays[key];
+    return found?.style?.max ?? found?.max ?? 15;
+  }
+
+
 </script>
 
 <div class="barber">
@@ -61,14 +95,18 @@
   <div class="section-content">
     {#if activeSection === 'hair'}
       <div class="section-group">
-        <h3 class="section-title">Hair Style</h3>
+        <div class="section-header">
+          <h3 class="section-title">Hair Style</h3>
+          <button class="reset-btn" onclick={resetHair}>Reset</button>
+        </div>
+        <p class="section-desc">Change your hair style and color.</p>
 
         <div class="slider-group">
           <label class="slider-label">
             <span>Style</span>
             <span class="slider-value">{store.appearance?.hair?.style ?? 0}</span>
           </label>
-          <input type="range" class="slider" min="0" max="30" step="1"
+          <input type="range" class="slider" min="0" max={getHairMax('style')} step="1"
             value={store.appearance?.hair?.style ?? 0}
             oninput={(e) => store.changeHair({ style: parseInt(e.target.value) })} />
         </div>
@@ -81,6 +119,7 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.color ?? 0}
             oninput={(e) => store.changeHair({ color: parseInt(e.target.value) })} />
+          <div class="color-gradient-hair"></div>
         </div>
 
         <div class="slider-group">
@@ -91,6 +130,7 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.highlight ?? 0}
             oninput={(e) => store.changeHair({ highlight: parseInt(e.target.value) })} />
+          <div class="color-gradient-hair"></div>
         </div>
 
         <div class="slider-group">
@@ -98,7 +138,7 @@
             <span>Texture</span>
             <span class="slider-value">{store.appearance?.hair?.texture ?? 0}</span>
           </label>
-          <input type="range" class="slider" min="0" max="5" step="1"
+          <input type="range" class="slider" min="0" max={getHairMax('texture')} step="1"
             value={store.appearance?.hair?.texture ?? 0}
             oninput={(e) => store.changeHair({ texture: parseInt(e.target.value) })} />
         </div>
@@ -106,7 +146,11 @@
 
     {:else if activeSection === 'overlays'}
       <div class="section-group">
-        <h3 class="section-title">Facial Hair & Brows</h3>
+        <div class="section-header">
+          <h3 class="section-title">Facial Hair & Brows</h3>
+          <button class="reset-btn" onclick={resetFacialHair}>Reset</button>
+        </div>
+        <p class="section-desc">Style your beard, eyebrows, and chest hair.</p>
         {#each FACIAL_OVERLAYS as overlay}
           <div class="overlay-group">
             <span class="overlay-name">{overlay.label}</span>
@@ -116,7 +160,7 @@
                   <span>Style</span>
                   <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
                 </label>
-                <input type="range" class="slider" min="0" max="30" step="1"
+                <input type="range" class="slider" min="0" max={getOverlayMax(overlay.key)} step="1"
                   value={getOverlayStyle(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'style', e.target.value)} />
               </div>
@@ -129,6 +173,18 @@
                   value={getOverlayOpacity(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'opacity', e.target.value)} />
               </div>
+              {#if overlay.hasColor}
+                <div class="slider-group compact">
+                  <label class="slider-label">
+                    <span>Color ({overlay.hasColor === 'hair' ? 'Hair' : 'Makeup'})</span>
+                    <span class="slider-value">{getOverlayColor(overlay.key)}</span>
+                  </label>
+                  <input type="range" class="slider accent" min="0" max="63" step="1"
+                    value={getOverlayColor(overlay.key)}
+                    oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
+                  <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                </div>
+              {/if}
             </div>
           </div>
         {/each}
@@ -136,7 +192,11 @@
 
     {:else if activeSection === 'makeup'}
       <div class="section-group">
-        <h3 class="section-title">Makeup & Skin</h3>
+        <div class="section-header">
+          <h3 class="section-title">Makeup & Skin</h3>
+          <button class="reset-btn" onclick={resetMakeup}>Reset</button>
+        </div>
+        <p class="section-desc">Apply makeup, blush, and lipstick. Adjust skin details.</p>
         {#each MAKEUP_OVERLAYS as overlay}
           <div class="overlay-group">
             <span class="overlay-name">{overlay.label}</span>
@@ -146,7 +206,7 @@
                   <span>Style</span>
                   <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
                 </label>
-                <input type="range" class="slider" min="0" max="15" step="1"
+                <input type="range" class="slider" min="0" max={getOverlayMax(overlay.key)} step="1"
                   value={getOverlayStyle(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'style', e.target.value)} />
               </div>
@@ -159,6 +219,18 @@
                   value={getOverlayOpacity(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'opacity', e.target.value)} />
               </div>
+              {#if overlay.hasColor}
+                <div class="slider-group compact">
+                  <label class="slider-label">
+                    <span>Color ({overlay.hasColor === 'hair' ? 'Hair' : 'Makeup'})</span>
+                    <span class="slider-value">{getOverlayColor(overlay.key)}</span>
+                  </label>
+                  <input type="range" class="slider accent" min="0" max="63" step="1"
+                    value={getOverlayColor(overlay.key)}
+                    oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
+                  <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                </div>
+              {/if}
             </div>
           </div>
         {/each}
@@ -177,7 +249,7 @@
 
   .section-nav {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     padding: 6px 16px 10px;
     flex-shrink: 0;
   }

@@ -14,52 +14,90 @@
 
   let activeSection = $state('heritage');
 
-  // Face feature names → readable labels
-  const FACE_FEATURES = [
-    { key: 'noseWidth', label: 'Nose Width' },
-    { key: 'nosePeakHigh', label: 'Nose Height' },
-    { key: 'nosePeakSize', label: 'Nose Peak' },
-    { key: 'noseBoneHigh', label: 'Nose Bone' },
-    { key: 'nosePeakLowering', label: 'Nose Tip' },
-    { key: 'noseBoneTwist', label: 'Nose Twist' },
-    { key: 'eyeBrownHigh', label: 'Brow Height' },
-    { key: 'eyeBrownForward', label: 'Brow Depth' },
-    { key: 'cheeksBoneHigh', label: 'Cheekbone Height' },
-    { key: 'cheeksBoneWidth', label: 'Cheekbone Width' },
-    { key: 'cheeksWidth', label: 'Cheek Width' },
-    { key: 'eyesOpening', label: 'Eye Opening' },
-    { key: 'lipsThickness', label: 'Lip Thickness' },
-    { key: 'jawBoneWidth', label: 'Jaw Width' },
-    { key: 'jawBoneBackSize', label: 'Jaw Back' },
-    { key: 'chinBoneLowering', label: 'Chin Height' },
-    { key: 'chinBoneLenght', label: 'Chin Length' },
-    { key: 'chinBoneSize', label: 'Chin Size' },
-    { key: 'chinHole', label: 'Chin Cleft' },
-    { key: 'neckThickness', label: 'Neck Thickness' },
+  // Face feature names → readable labels, grouped by body area
+  const FACE_FEATURE_GROUPS = [
+    { group: 'Nose', features: [
+      { key: 'noseWidth', label: 'Width' },
+      { key: 'nosePeakHigh', label: 'Height' },
+      { key: 'nosePeakSize', label: 'Peak' },
+      { key: 'noseBoneHigh', label: 'Bone' },
+      { key: 'nosePeakLowering', label: 'Tip' },
+      { key: 'noseBoneTwist', label: 'Twist' },
+    ]},
+    { group: 'Brows & Cheeks', features: [
+      { key: 'eyeBrownHigh', label: 'Brow Height' },
+      { key: 'eyeBrownForward', label: 'Brow Depth' },
+      { key: 'cheeksBoneHigh', label: 'Cheekbone Height' },
+      { key: 'cheeksBoneWidth', label: 'Cheekbone Width' },
+      { key: 'cheeksWidth', label: 'Cheek Width' },
+    ]},
+    { group: 'Eyes & Lips', features: [
+      { key: 'eyesOpening', label: 'Eye Opening' },
+      { key: 'lipsThickness', label: 'Lip Thickness' },
+    ]},
+    { group: 'Jaw & Chin', features: [
+      { key: 'jawBoneWidth', label: 'Jaw Width' },
+      { key: 'jawBoneBackSize', label: 'Jaw Back' },
+      { key: 'chinBoneLowering', label: 'Chin Height' },
+      { key: 'chinBoneLenght', label: 'Chin Length' },
+      { key: 'chinBoneSize', label: 'Chin Size' },
+      { key: 'chinHole', label: 'Chin Cleft' },
+    ]},
+    { group: 'Neck', features: [
+      { key: 'neckThickness', label: 'Neck Thickness' },
+    ]},
   ];
+
+  // Flat list for reset function
+  const FACE_FEATURES = FACE_FEATURE_GROUPS.flatMap(g => g.features);
 
   const HEAD_OVERLAYS = [
     { key: 'blemishes', label: 'Blemishes' },
-    { key: 'beard', label: 'Beard' },
-    { key: 'eyebrows', label: 'Eyebrows' },
+    { key: 'beard', label: 'Beard', hasColor: 'hair' },
+    { key: 'eyebrows', label: 'Eyebrows', hasColor: 'hair' },
     { key: 'ageing', label: 'Ageing' },
-    { key: 'makeUp', label: 'Makeup' },
-    { key: 'blush', label: 'Blush' },
+    { key: 'makeUp', label: 'Makeup', hasColor: 'makeup' },
+    { key: 'blush', label: 'Blush', hasColor: 'makeup' },
     { key: 'complexion', label: 'Complexion' },
     { key: 'sunDamage', label: 'Sun Damage' },
-    { key: 'lipstick', label: 'Lipstick' },
+    { key: 'lipstick', label: 'Lipstick', hasColor: 'makeup' },
     { key: 'moleAndFreckles', label: 'Moles' },
-    { key: 'chestHair', label: 'Chest Hair' },
+    { key: 'chestHair', label: 'Chest Hair', hasColor: 'hair' },
     { key: 'bodyBlemishes', label: 'Body Marks' },
   ];
 
   const EYE_COLORS = [
-    'Green', 'Emerald', 'Light Blue', 'Ocean Blue', 'Light Brown',
-    'Dark Brown', 'Hazel', 'Dark Gray', 'Light Gray', 'Pink',
-    'Yellow', 'Purple', 'Blackout', 'Shades of Gray', 'Tequila Sunrise',
-    'Atomic', 'Warp', 'ECola', 'Space Ranger', 'Ying Yang',
-    'Bullseye', 'Lizard', 'Dragon', 'Extra Terrestrial', 'Goat',
-    'Smiley', 'Possessed', 'Demon', 'Infected', 'Alien', 'Undead'
+    { name: 'Green',        color: '#228B22' },
+    { name: 'Emerald',      color: '#50C878' },
+    { name: 'Light Blue',   color: '#87CEEB' },
+    { name: 'Ocean Blue',   color: '#1E90FF' },
+    { name: 'Light Brown',  color: '#C4A882' },
+    { name: 'Dark Brown',   color: '#654321' },
+    { name: 'Hazel',        color: '#8E7618' },
+    { name: 'Dark Gray',    color: '#555555' },
+    { name: 'Light Gray',   color: '#A9A9A9' },
+    { name: 'Pink',         color: '#FF69B4' },
+    { name: 'Yellow',       color: '#FFD700' },
+    { name: 'Purple',       color: '#8B008B' },
+    { name: 'Blackout',     color: '#111111' },
+    { name: 'Shades of Gray', color: '#808080' },
+    { name: 'Tequila Sunrise', color: '#FF6347' },
+    { name: 'Atomic',       color: '#7FFF00' },
+    { name: 'Warp',         color: '#9400D3' },
+    { name: 'ECola',        color: '#DC143C' },
+    { name: 'Space Ranger', color: '#00CED1' },
+    { name: 'Ying Yang',    color: '#F0F0F0' },
+    { name: 'Bullseye',     color: '#FF4500' },
+    { name: 'Lizard',       color: '#6B8E23' },
+    { name: 'Dragon',       color: '#B22222' },
+    { name: 'Extra Terrestrial', color: '#32CD32' },
+    { name: 'Goat',         color: '#DAA520' },
+    { name: 'Smiley',       color: '#FFFF00' },
+    { name: 'Possessed',    color: '#4B0082' },
+    { name: 'Demon',        color: '#8B0000' },
+    { name: 'Infected',     color: '#ADFF2F' },
+    { name: 'Alien',        color: '#00FF00' },
+    { name: 'Undead',       color: '#D3D3D3' },
   ];
 
   function setSection(s) {
@@ -83,6 +121,10 @@
     return store.appearance?.headOverlays?.[key]?.opacity ?? 0;
   }
 
+  function getOverlayColor(key) {
+    return store.appearance?.headOverlays?.[key]?.color ?? 0;
+  }
+
   async function handleFaceFeatureChange(key, value) {
     await store.changeFaceFeature({ [key]: parseFloat(value) });
   }
@@ -97,20 +139,132 @@
       [key]: { ...current, [field]: parseFloat(value) }
     });
   }
+
+  async function resetHeritage() {
+    await store.changeHeadBlend({ shapeFirst: 0, shapeSecond: 0, shapeMix: 0.5, skinMix: 0.5 });
+  }
+
+  async function resetFace() {
+    const data = {};
+    for (const feat of FACE_FEATURES) data[feat.key] = 0;
+    await store.changeFaceFeature(data);
+  }
+
+  async function resetHair() {
+    await store.changeHair({ style: 0, color: 0, highlight: 0, texture: 0 });
+  }
+
+  async function resetOverlays() {
+    for (const overlay of HEAD_OVERLAYS) {
+      await store.changeHeadOverlay({
+        [overlay.key]: { style: 0, opacity: 0, color: 0, secondColor: 0 }
+      });
+    }
+  }
+
+  let subNavEl;
+  let pedSearchQuery = $state('');
+
+  function scrollSubLeft() { if (subNavEl) subNavEl.scrollLeft -= 100; }
+  function scrollSubRight() { if (subNavEl) subNavEl.scrollLeft += 100; }
+
+  // Ped model helpers
+  const FREEMODE_PEDS = ['mp_m_freemode_01', 'mp_f_freemode_01'];
+
+  function getAvailablePeds() {
+    const items = store.settings?.model?.items;
+    if (!items || !Array.isArray(items)) return [];
+    return items.filter(p => !FREEMODE_PEDS.includes(p));
+  }
+
+  function getFilteredPeds() {
+    let peds = getAvailablePeds();
+    if (pedSearchQuery.trim()) {
+      const q = pedSearchQuery.toLowerCase();
+      peds = peds.filter(p => p.toLowerCase().includes(q) || formatPedName(p).toLowerCase().includes(q));
+    }
+    return peds;
+  }
+
+  function formatPedName(ped) {
+    // a_c_cat_01 → Cat, s_m_y_cop_01 → Cop, ig_tracydisanto → Tracy Disanto
+    return ped
+      .replace(/^(a_[cfm]_[mfy]?_?|s_[mf]_[ymo]_|u_[mf]_[ymo]_|csb_|cs_|ig_|mp_[mf]_|g_[mf]_y_|hc_)/i, '')
+      .replace(/_\d+$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim() || ped;
+  }
+
+  // Get dynamic max values from settings, fallback to sensible defaults
+  function getSettingsMax(path, fallback) {
+    try {
+      const parts = path.split('.');
+      let val = store.settings;
+      for (const p of parts) val = val?.[p];
+      return val ?? fallback;
+    } catch { return fallback; }
+  }
+
+  function getHairMax(field) {
+    return getSettingsMax(`hair.${field}.max`, field === 'style' ? 30 : field === 'texture' ? 5 : 63);
+  }
+
+  function getOverlayMax(key) {
+    const overlays = store.settings?.headOverlays;
+    if (!overlays) return 15;
+    const found = Array.isArray(overlays) ? overlays.find(o => o.id === key || o.overlayId === key) : overlays[key];
+    return found?.style?.max ?? found?.max ?? 15;
+  }
+
+  async function randomizeAppearance() {
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const randInt = (min, max) => Math.floor(rand(min, max + 1));
+
+    // Random heritage
+    await store.changeHeadBlend({
+      shapeFirst: randInt(0, 45),
+      shapeSecond: randInt(0, 45),
+      shapeThird: 0,
+      skinFirst: randInt(0, 45),
+      skinSecond: randInt(0, 45),
+      skinThird: 0,
+      shapeMix: parseFloat(rand(0, 1).toFixed(2)),
+      skinMix: parseFloat(rand(0, 1).toFixed(2)),
+      thirdMix: 0,
+    });
+
+    // Random face features
+    const faceData = {};
+    for (const feat of FACE_FEATURES) {
+      faceData[feat.key] = parseFloat(rand(-1.0, 1.0).toFixed(2));
+    }
+    await store.changeFaceFeature(faceData);
+
+    // Random eye color (0-30)
+    await store.changeEyeColor(randInt(0, 30));
+  }
 </script>
 
 <div class="creator">
-  <!-- Section Navigation (vertical tabs on top) -->
-  <div class="section-nav">
-    {#each sections as s}
-      <button
-        class="section-tab"
-        class:active={activeSection === s.id}
-        onclick={() => setSection(s)}
-      >
-        {s.label}
+  <!-- Section Navigation with scroll arrows -->
+  <div class="section-nav-wrap">
+    <button class="nav-arrow" onclick={scrollSubLeft}>&#8249;</button>
+    <div class="section-nav" bind:this={subNavEl}>
+      {#each sections as s}
+        <button
+          class="section-tab"
+          class:active={activeSection === s.id}
+          onclick={() => setSection(s)}
+        >
+          {s.label}
+        </button>
+      {/each}
+      <button class="section-tab randomize" onclick={randomizeAppearance} title="Randomize face">
+        Dice
       </button>
-    {/each}
+    </div>
+    <button class="nav-arrow" onclick={scrollSubRight}>&#8250;</button>
   </div>
 
   <!-- Section Content -->
@@ -119,92 +273,129 @@
     {#if activeSection === 'model'}
       <div class="section-group">
         <h3 class="section-title">Character Model</h3>
+        <p class="section-desc">Select your character's base model. Freemode models support full customization.</p>
         <div class="model-buttons">
-          <button class="model-btn" class:active={store.appearance?.model === 'mp_m_freemode_01'}
+          <button class="model-btn freemode" class:active={store.appearance?.model === 'mp_m_freemode_01'}
             onclick={() => store.changeModel('mp_m_freemode_01')}>
-            <div class="model-icon">♂</div>
+            <img class="model-thumb" src="https://docs.fivem.net/peds/mp_m_freemode_01.png" alt="Male" loading="lazy" />
             <span>Male</span>
           </button>
-          <button class="model-btn" class:active={store.appearance?.model === 'mp_f_freemode_01'}
+          <button class="model-btn freemode" class:active={store.appearance?.model === 'mp_f_freemode_01'}
             onclick={() => store.changeModel('mp_f_freemode_01')}>
-            <div class="model-icon">♀</div>
+            <img class="model-thumb" src="https://docs.fivem.net/peds/mp_f_freemode_01.png" alt="Female" loading="lazy" />
             <span>Female</span>
           </button>
         </div>
+
+        <!-- Other Ped Models -->
+        {#if getAvailablePeds().length > 0}
+          <h3 class="section-title" style="margin-top: 12px;">Other Models</h3>
+          <p class="section-desc">These models have a fixed appearance and cannot be customized.</p>
+
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input class="search-input" type="text" placeholder="Search ped models..."
+              bind:value={pedSearchQuery} />
+          </div>
+
+          <div class="ped-grid">
+            {#each getFilteredPeds() as ped (ped)}
+              <button class="ped-card" class:active={store.appearance?.model === ped}
+                onclick={() => store.changeModel(ped)}>
+                <img class="ped-img" src="https://docs.fivem.net/peds/{ped}.png" alt={ped} loading="lazy"
+                  onerror={(e) => { e.target.style.display = 'none'; }} />
+                <span class="ped-name">{formatPedName(ped)}</span>
+              </button>
+            {/each}
+            {#if getFilteredPeds().length === 0}
+              <p class="empty-hint" style="grid-column: 1/-1;">No models match "{pedSearchQuery}"</p>
+            {/if}
+          </div>
+        {/if}
       </div>
 
     {:else if activeSection === 'heritage'}
       <div class="section-group">
-        <h3 class="section-title">Heritage</h3>
+        <div class="section-header">
+          <h3 class="section-title">Heritage</h3>
+          <button class="reset-btn" onclick={resetHeritage}>Reset</button>
+        </div>
         <p class="section-desc">Choose your character's parents to define facial structure and skin tone.</p>
 
-        <div class="slider-group">
-          <label class="slider-label">
-            <span>Mother (Shape)</span>
-            <span class="slider-value">{getHeadBlendValue('shapeFirst')}</span>
-          </label>
-          <input type="range" class="slider" min="0" max="45" step="1"
-            value={getHeadBlendValue('shapeFirst')}
-            oninput={(e) => handleHeadBlendChange('shapeFirst', e.target.value)} />
+        <div class="slider-card">
+          <span class="slider-card-label">Parent Selection</span>
+          <div class="slider-group">
+            <label class="slider-label"><span>Mother (Shape)</span><span class="slider-value">{getHeadBlendValue('shapeFirst')}</span></label>
+            <input type="range" class="slider" min="0" max="45" step="1" value={getHeadBlendValue('shapeFirst')} oninput={(e) => handleHeadBlendChange('shapeFirst', e.target.value)} />
+          </div>
+          <div class="slider-group">
+            <label class="slider-label"><span>Father (Shape)</span><span class="slider-value">{getHeadBlendValue('shapeSecond')}</span></label>
+            <input type="range" class="slider" min="0" max="45" step="1" value={getHeadBlendValue('shapeSecond')} oninput={(e) => handleHeadBlendChange('shapeSecond', e.target.value)} />
+          </div>
+          <div class="slider-group">
+            <label class="slider-label"><span>Mother (Skin)</span><span class="slider-value">{getHeadBlendValue('skinFirst')}</span></label>
+            <input type="range" class="slider" min="0" max="45" step="1" value={getHeadBlendValue('skinFirst')} oninput={(e) => handleHeadBlendChange('skinFirst', e.target.value)} />
+          </div>
+          <div class="slider-group">
+            <label class="slider-label"><span>Father (Skin)</span><span class="slider-value">{getHeadBlendValue('skinSecond')}</span></label>
+            <input type="range" class="slider" min="0" max="45" step="1" value={getHeadBlendValue('skinSecond')} oninput={(e) => handleHeadBlendChange('skinSecond', e.target.value)} />
+          </div>
         </div>
 
-        <div class="slider-group">
-          <label class="slider-label">
-            <span>Father (Shape)</span>
-            <span class="slider-value">{getHeadBlendValue('shapeSecond')}</span>
-          </label>
-          <input type="range" class="slider" min="0" max="45" step="1"
-            value={getHeadBlendValue('shapeSecond')}
-            oninput={(e) => handleHeadBlendChange('shapeSecond', e.target.value)} />
-        </div>
-
-        <div class="slider-group">
-          <label class="slider-label">
-            <span>Shape Mix</span>
-            <span class="slider-value">{(getHeadBlendValue('shapeMix') * 100).toFixed(0)}%</span>
-          </label>
-          <input type="range" class="slider" min="0" max="1" step="0.1"
-            value={getHeadBlendValue('shapeMix')}
-            oninput={(e) => handleHeadBlendChange('shapeMix', e.target.value)} />
-        </div>
-
-        <div class="slider-group">
-          <label class="slider-label">
-            <span>Skin Mix</span>
-            <span class="slider-value">{(getHeadBlendValue('skinMix') * 100).toFixed(0)}%</span>
-          </label>
-          <input type="range" class="slider" min="0" max="1" step="0.1"
-            value={getHeadBlendValue('skinMix')}
-            oninput={(e) => handleHeadBlendChange('skinMix', e.target.value)} />
+        <div class="slider-card">
+          <span class="slider-card-label">Blend Mix</span>
+          <div class="slider-group">
+            <label class="slider-label"><span>Shape Mix</span><span class="slider-value">{(getHeadBlendValue('shapeMix') * 100).toFixed(0)}%</span></label>
+            <input type="range" class="slider" min="0" max="1" step="0.1" value={getHeadBlendValue('shapeMix')} oninput={(e) => handleHeadBlendChange('shapeMix', e.target.value)} />
+          </div>
+          <div class="slider-group">
+            <label class="slider-label"><span>Skin Mix</span><span class="slider-value">{(getHeadBlendValue('skinMix') * 100).toFixed(0)}%</span></label>
+            <input type="range" class="slider" min="0" max="1" step="0.1" value={getHeadBlendValue('skinMix')} oninput={(e) => handleHeadBlendChange('skinMix', e.target.value)} />
+          </div>
         </div>
       </div>
 
     {:else if activeSection === 'face'}
       <div class="section-group">
-        <h3 class="section-title">Face Features</h3>
-        {#each FACE_FEATURES as feat}
-          <div class="slider-group compact">
-            <label class="slider-label">
-              <span>{feat.label}</span>
-              <span class="slider-value">{(getFaceValue(feat.key) * 100).toFixed(0)}%</span>
-            </label>
-            <input type="range" class="slider" min="-1" max="1" step="0.1"
-              value={getFaceValue(feat.key)}
-              oninput={(e) => handleFaceFeatureChange(feat.key, e.target.value)} />
+        <div class="section-header">
+          <h3 class="section-title">Face Features</h3>
+          <button class="reset-btn" onclick={resetFace}>Reset</button>
+        </div>
+        <p class="section-desc">Fine-tune facial proportions and structure.</p>
+        {#each FACE_FEATURE_GROUPS as group}
+          <div class="slider-card">
+            <span class="slider-card-label">{group.group}</span>
+            {#each group.features as feat}
+              <div class="slider-group compact">
+                <label class="slider-label">
+                  <span>{feat.label}</span>
+                  <span class="slider-value">{(getFaceValue(feat.key) * 100).toFixed(0)}%</span>
+                </label>
+                <input type="range" class="slider" min="-1" max="1" step="0.1"
+                  value={getFaceValue(feat.key)}
+                  oninput={(e) => handleFaceFeatureChange(feat.key, e.target.value)} />
+              </div>
+            {/each}
           </div>
         {/each}
       </div>
 
     {:else if activeSection === 'hair'}
       <div class="section-group">
-        <h3 class="section-title">Hair</h3>
+        <div class="section-header">
+          <h3 class="section-title">Hair</h3>
+          <button class="reset-btn" onclick={resetHair}>Reset</button>
+        </div>
+        <p class="section-desc">Choose hair style, color, and highlights.</p>
 
         <div class="slider-group">
           <label class="slider-label">
             <span>Style</span>
             <span class="slider-value">{store.appearance?.hair?.style ?? 0}</span>
           </label>
-          <input type="range" class="slider" min="0" max="30" step="1"
+          <input type="range" class="slider" min="0" max={getHairMax('style')} step="1"
             value={store.appearance?.hair?.style ?? 0}
             oninput={(e) => store.changeHair({ style: parseInt(e.target.value) })} />
         </div>
@@ -217,6 +408,7 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.color ?? 0}
             oninput={(e) => store.changeHair({ color: parseInt(e.target.value) })} />
+          <div class="color-gradient-hair"></div>
         </div>
 
         <div class="slider-group">
@@ -227,6 +419,7 @@
           <input type="range" class="slider accent" min="0" max="63" step="1"
             value={store.appearance?.hair?.highlight ?? 0}
             oninput={(e) => store.changeHair({ highlight: parseInt(e.target.value) })} />
+          <div class="color-gradient-hair"></div>
         </div>
 
         <div class="slider-group">
@@ -234,7 +427,7 @@
             <span>Texture</span>
             <span class="slider-value">{store.appearance?.hair?.texture ?? 0}</span>
           </label>
-          <input type="range" class="slider" min="0" max="5" step="1"
+          <input type="range" class="slider" min="0" max={getHairMax('texture')} step="1"
             value={store.appearance?.hair?.texture ?? 0}
             oninput={(e) => store.changeHair({ texture: parseInt(e.target.value) })} />
         </div>
@@ -242,7 +435,11 @@
 
     {:else if activeSection === 'overlays'}
       <div class="section-group">
-        <h3 class="section-title">Features & Overlays</h3>
+        <div class="section-header">
+          <h3 class="section-title">Features & Overlays</h3>
+          <button class="reset-btn" onclick={resetOverlays}>Reset</button>
+        </div>
+        <p class="section-desc">Customize facial hair, makeup, and skin details.</p>
         {#each HEAD_OVERLAYS as overlay}
           <div class="overlay-group">
             <span class="overlay-name">{overlay.label}</span>
@@ -252,7 +449,7 @@
                   <span>Style</span>
                   <span class="slider-value">{getOverlayStyle(overlay.key)}</span>
                 </label>
-                <input type="range" class="slider" min="0" max="15" step="1"
+                <input type="range" class="slider" min="0" max={getOverlayMax(overlay.key)} step="1"
                   value={getOverlayStyle(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'style', e.target.value)} />
               </div>
@@ -265,6 +462,18 @@
                   value={getOverlayOpacity(overlay.key)}
                   oninput={(e) => handleOverlayChange(overlay.key, 'opacity', e.target.value)} />
               </div>
+              {#if overlay.hasColor}
+                <div class="slider-group compact">
+                  <label class="slider-label">
+                    <span>Color ({overlay.hasColor === 'hair' ? 'Hair' : 'Makeup'})</span>
+                    <span class="slider-value">{getOverlayColor(overlay.key)}</span>
+                  </label>
+                  <input type="range" class="slider accent" min="0" max="63" step="1"
+                    value={getOverlayColor(overlay.key)}
+                    oninput={(e) => handleOverlayChange(overlay.key, 'color', e.target.value)} />
+                  <div class={overlay.hasColor === 'hair' ? 'color-gradient-hair' : 'color-gradient-makeup'}></div>
+                </div>
+              {/if}
             </div>
           </div>
         {/each}
@@ -273,14 +482,16 @@
     {:else if activeSection === 'eyes'}
       <div class="section-group">
         <h3 class="section-title">Eye Color</h3>
+        <p class="section-desc">Pick your eye color.</p>
         <div class="eye-grid">
-          {#each EYE_COLORS as color, i}
+          {#each EYE_COLORS as ec, i}
             <button
               class="eye-btn"
               class:active={store.appearance?.eyeColor === i}
+              style="background: linear-gradient(135deg, {ec.color}, {ec.color}88);"
               onclick={() => store.changeEyeColor(i)}
             >
-              {color}
+              {ec.name}
             </button>
           {/each}
         </div>
@@ -298,17 +509,26 @@
   }
 
   /* ---- SECTION NAV ---- */
+  .section-nav-wrap {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 8px 10px; flex-shrink: 0;
+  }
+  .nav-arrow {
+    width: 22px; height: 26px; border-radius: 6px;
+    background: rgba(18, 19, 24, 0.8); border: 1px solid rgba(30, 32, 40, 0.4);
+    color: var(--text-secondary); font-size: 16px; cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font); transition: all 0.15s;
+  }
+  .nav-arrow:hover { color: var(--text-primary); border-color: rgba(60, 65, 78, 0.6); }
   .section-nav {
     display: flex;
     gap: 6px;
-    padding: 6px 16px 10px;
     overflow-x: auto;
-    flex-shrink: 0;
+    flex: 1;
     scroll-behavior: smooth;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    mask-image: linear-gradient(to right, black 88%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, black 88%, transparent 100%);
   }
   .section-nav::-webkit-scrollbar { display: none; }
 
@@ -331,6 +551,18 @@
     font-weight: 600;
     background: rgba(0, 40, 36, 0.8);
     border-color: var(--accent-border);
+  }
+
+  .section-tab.randomize {
+    margin-left: auto;
+    background: rgba(40, 30, 10, 0.8);
+    border-color: rgba(180, 140, 40, 0.3);
+    color: rgba(220, 180, 60, 0.8);
+  }
+  .section-tab.randomize:hover {
+    color: rgba(240, 200, 80, 1);
+    border-color: rgba(220, 180, 60, 0.5);
+    background: rgba(50, 40, 15, 0.9);
   }
 
   /* ---- SECTION CONTENT ---- */
@@ -387,8 +619,80 @@
     box-shadow: 0 0 16px var(--accent-glow);
   }
 
+  .model-btn.freemode { padding: 12px 16px; }
+  .model-thumb {
+    width: 64px; height: 80px; object-fit: cover; object-position: top;
+    border-radius: 6px; margin-bottom: 6px;
+    background: rgba(20, 22, 28, 0.5);
+  }
   .model-icon { font-size: 32px; margin-bottom: 8px; }
   .model-btn span { font-size: 14px; font-weight: 600; }
+
+  /* ---- PED GRID ---- */
+  .ped-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .ped-card {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 4px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid rgba(25, 28, 36, 0.6);
+    cursor: pointer; font-family: var(--font);
+    transition: all 0.15s;
+    overflow: hidden;
+  }
+  .ped-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+  .ped-card.active {
+    border-color: rgba(0, 255, 235, 0.5);
+    background: var(--bg-card-selected);
+  }
+
+  .ped-img {
+    width: 56px; height: 70px;
+    object-fit: cover; object-position: top;
+    border-radius: 4px;
+    background: rgba(20, 22, 28, 0.5);
+  }
+
+  .ped-name {
+    font-size: 11px; font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ped-card.active .ped-name { color: var(--accent); font-weight: 600; }
+
+  /* ---- SLIDER CARDS (visual grouping) ---- */
+  .slider-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .slider-card-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
 
   /* ---- SLIDERS ---- */
   .slider-group {
@@ -471,23 +775,26 @@
   }
 
   .eye-btn {
-    padding: 8px 6px;
+    padding: 10px 6px;
     border-radius: var(--radius-sm);
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
     font-family: var(--font);
-    color: var(--text-secondary);
-    background: var(--bg-card);
-    border: 1px solid rgba(25, 28, 36, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(25, 28, 36, 0.6);
     cursor: pointer;
     transition: all 0.15s;
     text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .eye-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+  .eye-btn:hover { border-color: rgba(255, 255, 255, 0.4); transform: translateY(-1px); }
   .eye-btn.active {
-    color: var(--accent);
-    background: var(--bg-card-selected);
-    border-color: rgba(0, 255, 235, 0.5);
-    font-weight: 600;
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(0, 255, 235, 0.5);
+    font-weight: 700;
   }
 </style>

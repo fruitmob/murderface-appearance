@@ -28,18 +28,33 @@ export const PROP_MAP = {
   7: { name: 'Bracelets', configKey: 'bracelets' },
 };
 
-// All possible category definitions — filtered at runtime by componentConfig/propConfig
+// Individual category tabs — BL/illenium order
 const ALL_CATEGORIES = [
-  { name: 'Tops', type: 'component', ids: [11, 8, 3], configKeys: ['jackets', 'shirts', 'upperBody'] },
-  { name: 'Pants', type: 'component', ids: [4], configKeys: ['lowerBody'] },
-  { name: 'Shoes', type: 'component', ids: [6], configKeys: ['shoes'] },
-  { name: 'Hats', type: 'prop', ids: [0], configKeys: ['hats'] },
-  { name: 'Glasses', type: 'prop', ids: [1], configKeys: ['glasses'] },
-  { name: 'Masks', type: 'component', ids: [1], configKeys: ['masks'] },
-  { name: 'Bags', type: 'component', ids: [5], configKeys: ['bags'] },
-  { name: 'Armor', type: 'component', ids: [9], configKeys: ['bodyArmor'] },
-  { name: 'Accessories', type: 'mixed', componentIds: [7, 10], propIds: [2, 6, 7], configKeys: ['scarfAndChains', 'decals', 'ear', 'watches', 'bracelets'] },
+  { name: 'Hats',       type: 'prop',      ids: [0],  configKeys: ['hats'] },
+  { name: 'Masks',      type: 'component', ids: [1],  configKeys: ['masks'] },
+  { name: 'Jackets',    type: 'component', ids: [11], configKeys: ['jackets'] },
+  { name: 'Shirts',     type: 'component', ids: [8],  configKeys: ['shirts'] },
+  { name: 'Arms',       type: 'component', ids: [3],  configKeys: ['upperBody'] },
+  { name: 'Pants',      type: 'component', ids: [4],  configKeys: ['lowerBody'] },
+  { name: 'Bags',       type: 'component', ids: [5],  configKeys: ['bags'] },
+  { name: 'Shoes',      type: 'component', ids: [6],  configKeys: ['shoes'] },
+  { name: 'Chains',     type: 'component', ids: [7],  configKeys: ['scarfAndChains'] },
+  { name: 'Armor',      type: 'component', ids: [9],  configKeys: ['bodyArmor'] },
+  { name: 'Decals',     type: 'component', ids: [10], configKeys: ['decals'] },
+  { name: 'Glasses',    type: 'prop',      ids: [1],  configKeys: ['glasses'] },
+  { name: 'Ears',       type: 'prop',      ids: [2],  configKeys: ['ear'] },
+  { name: 'Watches',    type: 'prop',      ids: [6],  configKeys: ['watches'] },
+  { name: 'Bracelets',  type: 'prop',      ids: [7],  configKeys: ['bracelets'] },
 ];
+
+// CDN image URL for clothing screenshots (FiveManage R2)
+const CDN_BASE = 'https://r2.fivemanage.com/UCYQxfFhJPgMhBGb0n0lw/UUID98670F42-F5F8-FFC2-61B0-23158C758820';
+
+export function getClothingImageUrl(type, id, drawable, gender) {
+  const g = gender === 1 ? 'female' : 'male';
+  const t = type === 'component' ? 'Clothing' : 'Accessories';
+  return `${CDN_BASE}_${g}_${t}_${id}_${drawable}.webp?v=9999`;
+}
 
 /**
  * Build active categories from illenium config (componentConfig + propConfig)
@@ -49,19 +64,8 @@ export function getActiveCategories(componentConfig, propConfig) {
   if (!componentConfig && !propConfig) return ALL_CATEGORIES;
 
   return ALL_CATEGORIES.filter(cat => {
-    if (cat.type === 'component') {
-      return cat.configKeys.some(key => !componentConfig || componentConfig[key] !== false);
-    }
-    if (cat.type === 'prop') {
-      return cat.configKeys.some(key => !propConfig || propConfig[key] !== false);
-    }
-    // mixed — show if any component OR prop key is enabled
-    const hasComp = cat.configKeys.some(key => {
-      if (key in (componentConfig || {})) return componentConfig[key] !== false;
-      if (key in (propConfig || {})) return propConfig[key] !== false;
-      return true;
-    });
-    return hasComp;
+    const cfgMap = cat.type === 'prop' ? propConfig : componentConfig;
+    return cat.configKeys.some(key => !cfgMap || cfgMap[key] !== false);
   });
 }
 
@@ -82,12 +86,14 @@ export function createAppearanceStore() {
   let shopInfo = $state({ shopType: 'clothing', cost: 0, cash: 0 });
 
   // Current UI state
-  let activeCategory = $state('Tops');
+  let activeCategory = $state('Hats');
+  let searchQuery = $state('');
   let selectedDrawable = $state({});  // { [componentId|propId]: drawableIndex }
   let currentTexture = $state({});    // { [componentId|propId]: textureIndex }
   let maxDrawable = $state({});       // { [componentId|propId]: max }
   let maxTexture = $state({});        // { [componentId|propId]: max }
   let activeCamera = $state('default');
+  let gender = $state(0);            // 0 = male, 1 = female (from ped model)
 
   return {
     // Getters
@@ -106,10 +112,13 @@ export function createAppearanceStore() {
     get activeCamera() { return activeCamera; },
     get categories() { return categories; },
     get shopInfo() { return shopInfo; },
+    get gender() { return gender; },
+    get searchQuery() { return searchQuery; },
 
     // Setters
     set activeCategory(val) { activeCategory = val; },
     set activeCamera(val) { activeCamera = val; },
+    set searchQuery(val) { searchQuery = val; },
 
     // ---- LIFECYCLE ----
 
@@ -128,6 +137,13 @@ export function createAppearanceStore() {
         config = dataRes?.config;
         appearance = dataRes?.appearanceData;
         originalAppearance = JSON.parse(JSON.stringify(appearance));
+
+        // Detect gender from appearance model
+        if (appearance?.model) {
+          gender = (appearance.model === 'mp_f_freemode_01') ? 1 : 0;
+        } else if (appearance?.sex !== undefined) {
+          gender = appearance.sex;
+        }
 
         // Build categories from illenium config (respect disabled components/props)
         categories = getActiveCategories(
@@ -358,52 +374,49 @@ export function createAppearanceStore() {
       visible = false;
     },
 
+    async reset() {
+      if (!originalAppearance) return;
+      // Restore all components to original
+      if (originalAppearance.components) {
+        for (const comp of originalAppearance.components) {
+          await this.changeComponent(comp.component_id, comp.drawable, comp.texture);
+        }
+      }
+      // Restore all props to original
+      if (originalAppearance.props) {
+        for (const prop of originalAppearance.props) {
+          await this.changeProp(prop.prop_id, prop.drawable, prop.texture);
+        }
+      }
+    },
+
     // ---- HELPERS ----
 
     getItemsForCategory(categoryName) {
       const cat = categories.find(c => c.name === categoryName);
       if (!cat) return [];
 
+      const prefix = cat.type === 'prop' ? 'p' : 'c';
+      const map = cat.type === 'prop' ? PROP_MAP : COMPONENT_MAP;
       const items = [];
+      const query = searchQuery.toLowerCase();
 
-      if (cat.type === 'component' || cat.type === 'mixed') {
-        const compIds = cat.ids || cat.componentIds || [];
-        for (const id of compIds) {
-          const key = `c_${id}`;
-          const max = maxDrawable[key] || 0;
-          for (let d = 0; d <= max; d++) {
-            items.push({
-              type: 'component',
-              id,
-              drawable: d,
-              key: `c_${id}_${d}`,
-              label: `${COMPONENT_MAP[id]?.name || 'Item'} ${d + 1}`,
-              isSelected: selectedDrawable[key] === d,
-              texture: currentTexture[key] || 0,
-              maxTexture: maxTexture[key] || 0,
-            });
-          }
-        }
-      }
-
-      if (cat.type === 'prop' || cat.type === 'mixed') {
-        const propIds = cat.ids || cat.propIds || [];
-        for (const id of propIds) {
-          const key = `p_${id}`;
-          const max = maxDrawable[key] || 0;
-          // Props start at -1 (none)
-          for (let d = 0; d <= max; d++) {
-            items.push({
-              type: 'prop',
-              id,
-              drawable: d,
-              key: `p_${id}_${d}`,
-              label: `${PROP_MAP[id]?.name || 'Item'} ${d + 1}`,
-              isSelected: selectedDrawable[key] === d,
-              texture: currentTexture[key] || 0,
-              maxTexture: maxTexture[key] || 0,
-            });
-          }
+      for (const id of cat.ids) {
+        const key = `${prefix}_${id}`;
+        const max = maxDrawable[key] || 0;
+        for (let d = 0; d <= max; d++) {
+          const label = `${map[id]?.name || 'Item'} ${d + 1}`;
+          if (query && !label.toLowerCase().includes(query)) continue;
+          items.push({
+            type: cat.type,
+            id,
+            drawable: d,
+            key: `${prefix}_${id}_${d}`,
+            label,
+            isSelected: selectedDrawable[key] === d,
+            texture: currentTexture[key] || 0,
+            maxTexture: maxTexture[key] || 0,
+          });
         }
       }
 
@@ -411,26 +424,23 @@ export function createAppearanceStore() {
     },
 
     getSelectedItem() {
-      // Find the currently selected item in the active category
-      const cat = CATEGORIES.find(c => c.name === activeCategory);
+      const cat = categories.find(c => c.name === activeCategory);
       if (!cat) return null;
 
-      const ids = cat.ids || cat.componentIds || [];
-      const type = cat.type === 'prop' ? 'p' : 'c';
+      const prefix = cat.type === 'prop' ? 'p' : 'c';
+      const map = cat.type === 'prop' ? PROP_MAP : COMPONENT_MAP;
 
-      for (const id of ids) {
-        const key = `${type}_${id}`;
+      for (const id of cat.ids) {
+        const key = `${prefix}_${id}`;
         const drawable = selectedDrawable[key];
         if (drawable !== undefined && drawable >= 0) {
           return {
-            type: type === 'c' ? 'component' : 'prop',
+            type: cat.type,
             id,
             drawable,
             texture: currentTexture[key] || 0,
             maxTexture: maxTexture[key] || 0,
-            label: type === 'c'
-              ? `${COMPONENT_MAP[id]?.name || 'Item'} ${drawable + 1}`
-              : `${PROP_MAP[id]?.name || 'Item'} ${drawable + 1}`,
+            label: `${map[id]?.name || 'Item'} ${drawable + 1}`,
           };
         }
       }

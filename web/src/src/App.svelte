@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { fetchNui, onNuiMessage } from './lib/nui.js';
-  import { createAppearanceStore } from './lib/stores.svelte.js';
+  import { createAppearanceStore, getClothingImageUrl } from './lib/stores.svelte.js';
   import CharacterCreator from './screens/CharacterCreator.svelte';
   import BarberShop from './screens/BarberShop.svelte';
   import TattooShop from './screens/TattooShop.svelte';
@@ -13,6 +13,28 @@
 
   // Screen mode: 'clothing' | 'creator' | 'barber' | 'tattoo' | 'outfits'
   let screenMode = $state('clothing');
+
+  // Section nav — built from config booleans, shown when 2+ sections enabled
+  let sections = $state([]);
+
+  function buildSections(cfg) {
+    if (!cfg) return [];
+    const s = [];
+    if (cfg.ped || cfg.headBlend || cfg.faceFeatures)  s.push({ id: 'creator',  label: 'Ped' });
+    if (cfg.headOverlays)                               s.push({ id: 'barber',   label: 'Hair' });
+    if (cfg.components || cfg.props)                     s.push({ id: 'clothing', label: 'Clothing' });
+    if (cfg.tattoos)                                     s.push({ id: 'tattoo',   label: 'Tattoos' });
+    s.push({ id: 'outfits', label: 'Outfits' }); // always available
+    return s;
+  }
+
+  function autoDetectScreen(cfg) {
+    if (!cfg) return 'clothing';
+    if (cfg.ped || cfg.headBlend || cfg.faceFeatures) return 'creator';
+    if (cfg.headOverlays) return 'barber';
+    if (cfg.tattoos) return 'tattoo';
+    return 'clothing';
+  }
 
   // Dev: toggle with keyboard
   function handleKeyDown(e) {
@@ -27,11 +49,17 @@
   onMount(async () => {
     if (isDev) {
       await store.show();
+      sections = buildSections(store.config);
+      screenMode = autoDetectScreen(store.config);
       window.addEventListener('keydown', handleKeyDown);
     }
   });
 
-  const cleanupShow = onNuiMessage('appearance_display', () => store.show());
+  const cleanupShow = onNuiMessage('appearance_display', async () => {
+    await store.show();
+    sections = buildSections(store.config);
+    screenMode = autoDetectScreen(store.config);
+  });
   const cleanupHide = onNuiMessage('appearance_hide', () => store.hide());
   onDestroy(() => {
     cleanupShow(); cleanupHide();
@@ -77,6 +105,7 @@
   // ---- MOUSE DRAG CAMERA ----
   let isDragging = $state(false);
   let lastMouseX = $state(0);
+  let lastMouseY = $state(0);
 
   function handleMouseDown(e) {
     // Only drag on the game area (right side, outside the panel)
@@ -84,6 +113,7 @@
     if (e.button === 0) {
       isDragging = true;
       lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
     }
   }
 
@@ -94,10 +124,11 @@
   function handleMouseMove(e) {
     if (!isDragging) return;
     const deltaX = e.clientX - lastMouseX;
+    const deltaY = e.clientY - lastMouseY;
     lastMouseX = e.clientX;
-    if (Math.abs(deltaX) > 1) {
-      // Smooth rotation — directly set ped heading via custom callback
-      fetchNui('murderface_rotate', { delta: deltaX * -0.5 });
+    lastMouseY = e.clientY;
+    if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+      fetchNui('murderface_rotate', { deltaX: deltaX * -1.0, deltaY: deltaY * -1.0 });
     }
   }
 
@@ -105,14 +136,9 @@
     // Only zoom on game area
     if (e.target.closest('.panel')) return;
     e.preventDefault();
-    // Cycle through camera presets on scroll
-    const cameras = ['head', 'body', 'bottom', 'default'];
-    const currentIdx = cameras.indexOf(store.activeCamera);
-    if (e.deltaY < 0 && currentIdx > 0) {
-      store.setCamera(cameras[currentIdx - 1]);
-    } else if (e.deltaY > 0 && currentIdx < cameras.length - 1) {
-      store.setCamera(cameras[currentIdx + 1]);
-    }
+    // Smooth zoom via orbital camera
+    const delta = e.deltaY > 0 ? 1 : -1;
+    fetchNui('murderface_zoom', { delta });
   }
 </script>
 
@@ -131,7 +157,7 @@
     <!-- Header -->
     <div class="header">
       <div class="header-left">
-        <h1 class="title">{screenMode === 'creator' ? 'CHARACTER' : screenMode === 'barber' ? 'BARBER' : screenMode === 'tattoo' ? 'TATTOO' : screenMode === 'outfits' ? 'OUTFITS' : 'CLOTHING'}</h1>
+        <h1 class="title">{sections.length > 1 ? 'APPEARANCE' : screenMode === 'creator' ? 'CHARACTER' : screenMode === 'barber' ? 'BARBER' : screenMode === 'tattoo' ? 'TATTOO' : screenMode === 'outfits' ? 'OUTFITS' : 'CLOTHING'}</h1>
         <div class="location">
           {#if screenMode === 'creator'}
             <span class="store-name">Character Creation</span>
@@ -159,6 +185,19 @@
 
     <div class="divider"></div>
 
+    <!-- Section Navigation (shown when 2+ sections enabled) -->
+    {#if sections.length > 1}
+      <div class="section-nav">
+        {#each sections as sec}
+          <button
+            class="section-btn"
+            class:active={screenMode === sec.id}
+            onclick={() => { screenMode = sec.id; }}
+          >{sec.label}</button>
+        {/each}
+      </div>
+    {/if}
+
     {#if screenMode === 'creator'}
       <CharacterCreator {store} />
     {:else if screenMode === 'barber'}
@@ -169,13 +208,15 @@
       <OutfitMenu {store} />
     {:else}
 
+    <p class="section-desc" style="padding: 0 16px 6px;">Browse and purchase clothing items.</p>
+
     <!-- Search -->
-    <div class="search">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="search-wrap" style="padding: 0 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/>
         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" placeholder="Search items..." />
+      <input class="search-input" type="text" placeholder="Search items..." bind:value={store.searchQuery} />
     </div>
 
     <!-- Category Tabs -->
@@ -206,8 +247,14 @@
           onclick={() => handleItemClick(item)}
         >
           <div class="card-image">
-            <!-- TODO: clothing thumbnail from CDN -->
-            <div class="card-placeholder">
+            <img
+              class="card-img"
+              src={getClothingImageUrl(item.type, item.id, item.drawable, store.gender)}
+              alt={item.label}
+              loading="lazy"
+              onerror={(e) => { e.target.style.display='none'; e.target.nextElementSibling.style.display='flex'; }}
+            />
+            <div class="card-placeholder" style="display:none">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.15">
                 <path d="M20.38 3.46L16 2L12 5.5L8 2L3.62 3.46L2 8.5L5 12L2 15.5L3.62 20.54L8 22L12 18.5L16 22L20.38 20.54L22 15.5L19 12L22 8.5L20.38 3.46Z"/>
               </svg>
@@ -266,7 +313,7 @@
       {:else}
         <button class="btn btn-primary" onclick={() => store.save()}>Purchase</button>
         <button class="btn btn-outline" onclick={() => store.save()}>Save Outfit</button>
-        <button class="btn btn-ghost" onclick={() => store.exit()}>Reset</button>
+        <button class="btn btn-ghost" onclick={() => store.reset()}>Reset</button>
         <button class="btn btn-exit" onclick={() => store.exit()}>Exit</button>
       {/if}
     </div>
@@ -368,6 +415,43 @@
     margin: 0 16px;
     background: var(--border);
     flex-shrink: 0;
+  }
+
+  /* ============ SECTION NAV ============ */
+  .section-nav {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .section-nav::-webkit-scrollbar { display: none; }
+
+  .section-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 8px 0;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font);
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    background: rgba(18, 19, 24, 0.8);
+    border: 1px solid rgba(30, 32, 40, 0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .section-btn:hover { color: var(--text-primary); border-color: rgba(60, 65, 78, 0.6); }
+  .section-btn.active {
+    color: var(--accent);
+    background: rgba(0, 40, 36, 0.8);
+    border-color: var(--accent-border);
   }
 
   /* ============ SEARCH ============ */
@@ -518,11 +602,22 @@
     overflow: hidden;
   }
 
+  .card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: rgba(20, 22, 28, 0.8);
+  }
+
   .card-placeholder {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--text-muted);
   }
 

@@ -67,3 +67,66 @@ body {
 
 * { user-select: none; -webkit-user-select: none; }
 input, textarea { user-select: text; -webkit-user-select: text; }
+
+/* Shared: Color gradient preview strips */
+.color-gradient-hair {
+  background: linear-gradient(to right,
+    #1a1a1a 0%, #2a1f17 6%, #3d2314 12%, #5c3520 18%,
+    #8b4513 24%, #a0522d 30%, #b8860b 36%, #daa520 42%,
+    #f5deb3 48%, #faebd7 54%, #ffffff 60%,
+    #c84040 66%, #8b0000 72%, #4b0082 78%,
+    #ff69b4 84%, #00c8ff 90%, #40ff40 96%);
+  height: 10px; border-radius: 4px; margin-top: 3px; opacity: 0.85;
+}
+.color-gradient-makeup {
+  background: linear-gradient(to right,
+    #f5e6d3 0%, #e8c4a0 8%, #d4a574 16%, #c48e5c 24%,
+    #c87070 32%, #e06060 40%, #ff4040 48%,
+    #cc3366 56%, #993399 64%, #6633cc 72%,
+    #ff69b4 80%, #ff1493 88%, #800040 96%);
+  height: 10px; border-radius: 4px; margin-top: 3px; opacity: 0.85;
+}
+
+/* Shared: Reset button */
+.reset-btn {
+  font-size: 10px; font-family: var(--font); font-weight: 500;
+  color: var(--text-muted); cursor: pointer;
+  background: none; border: 1px solid transparent;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  transition: all 0.15s;
+}
+.reset-btn:hover {
+  color: var(--accent); border-color: var(--accent-border);
+  background: rgba(0, 255, 235, 0.05);
+}
+
+/* Shared: Section header with reset */
+.section-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.section-header .section-title { margin-bottom: 0; }
+
+/* Shared: Section description */
+.section-desc {
+  font-size: 11px; color: var(--text-muted);
+  line-height: 1.4; margin-bottom: 8px;
+}
+
+/* Shared: Search input */
+.search-input {
+  width: 100%; padding: 8px 12px 8px 32px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 12px; font-family: var(--font);
+  outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--accent-border); }
+.search-input::placeholder { color: var(--text-muted); }
+.search-wrap {
+  position: relative; margin-bottom: 8px;
+}
+.search-wrap svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text-muted);
+}

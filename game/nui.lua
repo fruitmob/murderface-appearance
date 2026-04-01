@@ -5,6 +5,7 @@ RegisterNUICallback("appearance_get_locales", function(_, cb)
 end)
 
 RegisterNUICallback("appearance_get_settings", function(_, cb)
+    Wait(250)
     cb({ appearanceSettings = client.getAppearanceSettings() })
 end)
 

@@ -10,8 +10,12 @@
   let outfitName = $state('');
   let importCode = $state('');
   let showImportModal = $state(false);
+  let activeOutfitId = $state(null);
+  let searchQuery = $state('');
+  let confirmDeleteId = $state(null);
+  let renamingId = $state(null);
+  let renameValue = $state('');
 
-  // Mock outfits for dev
   const isDev = !window.GetParentResourceName;
 
   $effect(() => {
@@ -24,7 +28,7 @@
       outfits = [
         { id: 1, name: 'Casual Friday', model: 'mp_m_freemode_01' },
         { id: 2, name: 'Business Meeting', model: 'mp_m_freemode_01' },
-        { id: 3, name: 'Beach Day', model: 'mp_m_freemode_01' },
+        { id: 3, name: 'Beach Day', model: 'mp_f_freemode_01' },
       ];
     } else {
       try {
@@ -35,18 +39,48 @@
     loading = false;
   }
 
+  function filteredOutfits() {
+    if (!searchQuery.trim()) return outfits;
+    const q = searchQuery.toLowerCase();
+    return outfits.filter(o => o.name.toLowerCase().includes(q));
+  }
+
   async function wearOutfit(outfit) {
+    activeOutfitId = outfit.id;
     await store.wearClothes(outfit, 'head');
     await store.wearClothes(outfit, 'body');
     await store.wearClothes(outfit, 'bottom');
   }
 
   async function deleteOutfit(id) {
+    if (confirmDeleteId !== id) {
+      confirmDeleteId = id;
+      setTimeout(() => { if (confirmDeleteId === id) confirmDeleteId = null; }, 3000);
+      return;
+    }
+    confirmDeleteId = null;
     if (isDev) {
       outfits = outfits.filter(o => o.id !== id);
     } else {
       await fetchNui('illenium-appearance:deleteOutfit', id);
       await loadOutfits();
+    }
+    if (activeOutfitId === id) activeOutfitId = null;
+  }
+
+  function startRename(outfit) {
+    renamingId = outfit.id;
+    renameValue = outfit.name;
+  }
+
+  function confirmRename(outfit) {
+    if (!renameValue.trim()) { renamingId = null; return; }
+    outfit.name = renameValue.trim();
+    outfits = [...outfits]; // trigger reactivity
+    renamingId = null;
+    // In production, persist rename via NUI
+    if (!isDev) {
+      fetchNui('illenium-appearance:renameOutfit', { id: outfit.id, name: outfit.name });
     }
   }
 
@@ -96,6 +130,19 @@
     </button>
   </div>
 
+  <p class="section-desc" style="padding: 0 16px 6px;">Save, load, and share your outfits.</p>
+
+  <!-- Search (show when 4+ outfits) -->
+  {#if outfits.length >= 4}
+    <div class="search-wrap" style="padding: 0 16px 8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-input" type="text" placeholder="Search outfits..."
+        bind:value={searchQuery} />
+    </div>
+  {/if}
+
   <!-- Outfit count -->
   {#if !loading && outfits.length > 0}
     <div class="outfit-count">{outfits.length} Saved Outfit{outfits.length !== 1 ? 's' : ''}</div>
@@ -111,19 +158,44 @@
         <p class="empty-hint">Save your current look to access it later</p>
       </div>
     {:else}
-      {#each outfits as outfit (outfit.id)}
-        <div class="outfit-card">
+      {#each filteredOutfits() as outfit (outfit.id)}
+        <div class="outfit-card" class:active={activeOutfitId === outfit.id}>
           <div class="outfit-info">
-            <span class="outfit-name">{outfit.name}</span>
-            <span class="outfit-model">{outfit.model === 'mp_f_freemode_01' ? 'Female' : 'Male'}</span>
+            {#if renamingId === outfit.id}
+              <input class="rename-input" type="text" bind:value={renameValue}
+                onkeydown={(e) => { if (e.key === 'Enter') confirmRename(outfit); if (e.key === 'Escape') renamingId = null; }}
+                onclick={(e) => e.stopPropagation()} />
+            {:else}
+              <span class="outfit-name">
+                {outfit.name}
+                {#if activeOutfitId === outfit.id}
+                  <span class="wearing-badge">Wearing</span>
+                {/if}
+              </span>
+              <span class="outfit-model">
+                {outfit.model === 'mp_f_freemode_01' ? 'Female' : 'Male'}
+                <button class="rename-btn" onclick={() => startRename(outfit)} title="Rename">&#9998;</button>
+              </span>
+            {/if}
           </div>
           <div class="outfit-btns">
-            <button class="o-btn wear" onclick={() => wearOutfit(outfit)}>Wear</button>
-            <button class="o-btn share" onclick={() => generateCode(outfit.id)}>Share</button>
-            <button class="o-btn delete" onclick={() => deleteOutfit(outfit.id)}>Del</button>
+            {#if renamingId === outfit.id}
+              <button class="o-btn wear" onclick={() => confirmRename(outfit)}>Save</button>
+              <button class="o-btn share" onclick={() => renamingId = null}>Cancel</button>
+            {:else}
+              <button class="o-btn wear" onclick={() => wearOutfit(outfit)}>Wear</button>
+              <button class="o-btn share" onclick={() => generateCode(outfit.id)}>Share</button>
+              <button class="o-btn delete" class:confirming={confirmDeleteId === outfit.id}
+                onclick={() => deleteOutfit(outfit.id)}>
+                {confirmDeleteId === outfit.id ? 'Delete?' : 'Del'}
+              </button>
+            {/if}
           </div>
         </div>
       {/each}
+      {#if searchQuery && filteredOutfits().length === 0}
+        <div class="empty-state">No outfits match "{searchQuery}"</div>
+      {/if}
     {/if}
   </div>
 
@@ -180,11 +252,8 @@
   .outfit-action-btn.import:hover { color: var(--text-primary); }
 
   .outfit-count {
-    padding: 0 16px 6px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-    flex-shrink: 0;
+    padding: 0 16px 6px; font-size: 11px; font-weight: 500;
+    color: var(--text-muted); flex-shrink: 0;
   }
 
   .outfit-list { flex: 1; overflow-y: auto; padding: 0 16px 12px; min-height: 0; }
@@ -196,9 +265,34 @@
     border-radius: var(--radius-md); transition: all 0.15s;
   }
   .outfit-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+  .outfit-card.active {
+    border-color: rgba(0, 255, 235, 0.3); background: rgba(0, 18, 16, 0.6);
+    border-left: 3px solid var(--accent);
+  }
 
   .outfit-name { font-size: 14px; font-weight: 600; color: var(--text-primary); display: block; }
-  .outfit-model { font-size: 11px; color: var(--text-muted); margin-top: 3px; display: block; }
+  .outfit-model { font-size: 11px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+
+  .wearing-badge {
+    font-size: 9px; font-weight: 600; color: var(--accent);
+    background: var(--accent-dim); border: 1px solid var(--accent-border);
+    padding: 1px 6px; border-radius: var(--radius-pill); margin-left: 6px;
+  }
+
+  .rename-btn {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 12px; padding: 0; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .outfit-card:hover .rename-btn { opacity: 0.6; }
+  .rename-btn:hover { opacity: 1; color: var(--accent); }
+
+  .rename-input {
+    width: 100%; padding: 4px 8px;
+    background: var(--bg-input); border: 1px solid var(--accent-border);
+    border-radius: 4px; color: var(--text-primary);
+    font-size: 13px; font-family: var(--font); outline: none;
+  }
 
   .outfit-btns { display: flex; gap: 6px; }
   .o-btn {
@@ -212,6 +306,8 @@
   .o-btn.share:hover { color: var(--text-primary); }
   .o-btn.delete { background: var(--red-dim); color: var(--red); border-color: var(--red-border); }
   .o-btn.delete:hover { background: rgba(255, 80, 80, 0.25); }
+  .o-btn.delete.confirming { background: rgba(255, 40, 40, 0.4); border-color: var(--red); animation: pulse-red 0.6s ease-in-out; }
+  @keyframes pulse-red { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
   .empty-state { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 14px; }
   .empty-hint { font-size: 12px; margin-top: 8px; opacity: 0.6; }
