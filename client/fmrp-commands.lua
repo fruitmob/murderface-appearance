@@ -67,6 +67,7 @@ local orbitTargetCoords = nil -- vec3 orbit target (ped position + bone offset)
 local orbitCam = nil          -- current camera handle
 local orbitOldCam = nil       -- previous camera (during interp)
 local changingCam = false     -- lock during preset transitions
+local CAM_FOV = 49.0          -- match stock illenium FOV
 
 -- Bone IDs for camera presets (matches bl_appearance)
 local CAMERA_BONES = {
@@ -101,6 +102,14 @@ local function updateCamPosition()
     PointCamAtCoord(orbitCam, orbitTargetCoords.x, orbitTargetCoords.y, orbitTargetCoords.z)
 end
 
+-- Destroy all orbital cameras (cleanup)
+local function destroyOrbitCameras()
+    if orbitCam then DestroyCam(orbitCam, true); orbitCam = nil end
+    if orbitOldCam then DestroyCam(orbitOldCam, true); orbitOldCam = nil end
+    orbitTargetCoords = nil
+    changingCam = false
+end
+
 -- Get target coords from ped bone
 local function getBoneCoords(ped, boneOrPreset)
     local boneId = CAMERA_BONES[boneOrPreset] or CAMERA_BONES.default
@@ -123,35 +132,35 @@ local function moveCamera(ped, preset)
 
     local ox, oy, oz = getOrbitOffset()
 
-    -- Create new camera at destination
+    -- Create new camera at destination (FOV matches stock illenium)
     local newCam = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA",
         newTarget.x + ox, newTarget.y + oy, newTarget.z + oz,
-        0.0, 0.0, 0.0, 70.0, false, 0)
+        0.0, 0.0, 0.0, CAM_FOV, false, 0)
 
     PointCamAtCoord(newCam, newTarget.x, newTarget.y, newTarget.z)
 
     -- Find previous camera to interp from (ours or stock illenium's)
     local prevCam = orbitCam or GetRenderingCam()
     if prevCam and prevCam ~= -1 and DoesCamExist(prevCam) then
-        SetCamActiveWithInterp(newCam, prevCam, 250, 0, 0)
-        orbitOldCam = (prevCam ~= orbitCam) and nil or orbitCam -- only destroy our old cams
+        -- Smooth interp with easing (1,1 = ease location + rotation)
+        SetCamActiveWithInterp(newCam, prevCam, 400, 1, 1)
+        orbitOldCam = prevCam -- always track for cleanup
     else
         SetCamActive(newCam, true)
         RenderScriptCams(true, false, 0, true, true)
     end
 
     orbitCam = newCam
-    changingCam = false -- unlock immediately so user can drag during interp
 
-    -- Destroy old cam after interp completes
-    if orbitOldCam then
-        SetTimeout(300, function()
-            if orbitOldCam then
-                DestroyCam(orbitOldCam, true)
-                orbitOldCam = nil
-            end
-        end)
-    end
+    -- Keep changingCam locked during interp to prevent jitter, unlock after
+    SetTimeout(450, function()
+        changingCam = false
+        -- Destroy old cam after interp completes
+        if orbitOldCam and orbitOldCam ~= orbitCam then
+            DestroyCam(orbitOldCam, true)
+            orbitOldCam = nil
+        end
+    end)
 end
 
 -- NUI callback: mouse drag adjusts orbit angles (event-driven, no thread)
@@ -180,6 +189,30 @@ RegisterNUICallback("appearance_set_camera", function(camera, cb)
     cb(1)
     local ped = PlayerPedId()
     moveCamera(ped, camera)
+end)
+
+-- Override save/exit to clean up orbital cameras (stock exitPlayerCustomization only destroys its own cameraHandle)
+RegisterNUICallback("appearance_save", function(appearance, cb)
+    cb(1)
+    destroyOrbitCameras()
+    client.wearClothes(appearance, "head")
+    client.wearClothes(appearance, "body")
+    client.wearClothes(appearance, "bottom")
+    client.exitPlayerCustomization(appearance)
+end)
+
+RegisterNUICallback("appearance_exit", function(_, cb)
+    cb(1)
+    destroyOrbitCameras()
+    client.exitPlayerCustomization()
+end)
+
+-- Clean up orbital cameras on resource stop (prevents leaks)
+AddEventHandler("onResourceStop", function(resource)
+    if resource == GetCurrentResourceName() then
+        destroyOrbitCameras()
+        FreezeEntityPosition(cache.ped, false)
+    end
 end)
 
 -- Get shop costs + player cash balance for the UI

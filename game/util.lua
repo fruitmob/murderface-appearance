@@ -189,10 +189,20 @@ local function setPlayerModel(model)
 
     if IsModelInCdimage(model) then
         RequestModel(model)
-        while not HasModelLoaded(model) do Wait(0) end
+        local timeout = GetGameTimer() + 5000
+        while not HasModelLoaded(model) do
+            if GetGameTimer() > timeout then
+                SetModelAsNoLongerNeeded(model)
+                return cache.ped
+            end
+            Wait(0)
+        end
 
         SetPlayerModel(cache.playerId, model)
-        Wait(150)
+        -- Wait for cache.ped to update after model change
+        local pedTimeout = GetGameTimer() + 2000
+        repeat Wait(0) until DoesEntityExist(cache.ped) or GetGameTimer() > pedTimeout
+        Wait(0) -- one extra frame for cache to settle
         SetModelAsNoLongerNeeded(model)
 
         if isPedFreemodeModel(cache.ped) then
@@ -209,7 +219,7 @@ local function setPlayerModel(model)
         return cache.ped
     end
 
-    return cache.playerId
+    return cache.ped
 end
 
 local function setPedHeadBlend(ped, headBlend)
@@ -221,7 +231,7 @@ end
 local function setPedFaceFeatures(ped, faceFeatures)
     if faceFeatures then
         for k, v in pairs(constants.FACE_FEATURES) do
-            SetPedFaceFeature(ped, k-1, tofloat(faceFeatures[v]))
+            SetPedFaceFeature(ped, k-1, tofloat(faceFeatures[v] or 0))
         end
     end
 end
@@ -230,15 +240,17 @@ local function setPedHeadOverlays(ped, headOverlays)
     if headOverlays then
         for k, v in pairs(constants.HEAD_OVERLAYS) do
             local headOverlay = headOverlays[v]
-            SetPedHeadOverlay(ped, k-1, headOverlay.style, tofloat(headOverlay.opacity))
+            if headOverlay then
+                SetPedHeadOverlay(ped, k-1, headOverlay.style or 0, tofloat(headOverlay.opacity or 0))
 
-            if headOverlay.color then
-                local colorType = 1
-                if v == "blush" or v == "lipstick" or v == "makeUp" then
-                    colorType = 2
+                if headOverlay.color then
+                    local colorType = 1
+                    if v == "blush" or v == "lipstick" or v == "makeUp" then
+                        colorType = 2
+                    end
+
+                    SetPedHeadOverlayColor(ped, k-1, colorType, headOverlay.color, headOverlay.secondColor or headOverlay.color or 0)
                 end
-
-                SetPedHeadOverlayColor(ped, k-1, colorType, headOverlay.color, headOverlay.secondColor)
             end
         end
     end
@@ -265,8 +277,11 @@ local function setTattoos(ped, tattoos, style)
         for i = 1, #tattoos[k] do
             local tattoo = tattoos[k][i]
             local tattooGender = isMale and tattoo.hashMale or tattoo.hashFemale
-            for _ = 1, (tattoo.opacity or 0.1) * 10 do
-                AddPedDecorationFromHashes(ped, joaat(tattoo.collection), joaat(tattooGender))
+            if tattooGender and tattoo.collection then
+                local layers = math.floor(((tattoo.opacity or 0.1) * 10) + 0.5)
+                for _ = 1, layers do
+                    AddPedDecorationFromHashes(ped, joaat(tattoo.collection), joaat(tattooGender))
+                end
             end
         end
     end
@@ -349,16 +364,22 @@ local function setPreviewTattoo(ped, tattoos, tattoo)
     local tattooGender = isMale and tattoo.hashMale or tattoo.hashFemale
 
     ClearPedDecorations(ped)
-    for _ = 1, (tattoo.opacity or 0.1) * 10 do
-        AddPedDecorationFromHashes(ped, joaat(tattoo.collection), tattooGender)
+    if tattooGender and tattoo.collection then
+        local layers = math.floor(((tattoo.opacity or 0.1) * 10) + 0.5)
+        for _ = 1, layers do
+            AddPedDecorationFromHashes(ped, joaat(tattoo.collection), joaat(tattooGender))
+        end
     end
     for k in pairs(tattoos) do
         for i = 1, #tattoos[k] do
             local aTattoo = tattoos[k][i]
             if aTattoo.name ~= tattoo.name then
                 local aTattooGender = isMale and aTattoo.hashMale or aTattoo.hashFemale
-                for _ = 1, (aTattoo.opacity or 0.1) * 10 do
-                    AddPedDecorationFromHashes(ped, joaat(aTattoo.collection), joaat(aTattooGender))
+                if aTattooGender and aTattoo.collection then
+                    local aLayers = math.floor(((aTattoo.opacity or 0.1) * 10) + 0.5)
+                    for _ = 1, aLayers do
+                        AddPedDecorationFromHashes(ped, joaat(aTattoo.collection), joaat(aTattooGender))
+                    end
                 end
             end
         end
@@ -375,8 +396,8 @@ local function setPedAppearance(ped, appearance)
         ped = cache.ped
     end
     if appearance then
-        -- Load model first if provided (handles character select where model may not be set yet)
-        if appearance.model then
+        -- FMRP: Only reload model if it's different from current (avoids resetting all components)
+        if appearance.model and (type(ped) ~= 'number' or GetEntityModel(ped) ~= joaat(appearance.model)) then
             setPlayerModel(appearance.model)
             ped = cache.ped -- refresh ped handle after model change
         end
@@ -386,9 +407,15 @@ local function setPedAppearance(ped, appearance)
         if appearance.headBlend and isPedFreemodeModel(ped) then setPedHeadBlend(ped, appearance.headBlend) end
         if appearance.faceFeatures then setPedFaceFeatures(ped, appearance.faceFeatures) end
         if appearance.headOverlays then setPedHeadOverlays(ped, appearance.headOverlays) end
+        -- FMRP: Pass tattoos to setPedHair (for automatic fade), then store but don't re-apply
         if appearance.hair then setPedHair(ped, appearance.hair, appearance.tattoos) end
         if appearance.eyeColor then setPedEyeColor(ped, appearance.eyeColor) end
-        if appearance.tattoos then setPedTattoos(ped, appearance.tattoos) end
+        -- FMRP: Only apply tattoos if hair didn't already (hair handles tattoos via setTattoos internally)
+        if appearance.tattoos and not appearance.hair then
+            setPedTattoos(ped, appearance.tattoos)
+        elseif appearance.tattoos then
+            PED_TATTOOS = appearance.tattoos -- store reference without re-applying
+        end
     end
 end
 
