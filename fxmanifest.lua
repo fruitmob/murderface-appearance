@@ -4,7 +4,7 @@ game "gta5"
 author "fruitmob"
 description "Modern Svelte 5 UI replacement for illenium-appearance — glassmorphism, clothing thumbnails, orbital camera"
 repository "https://github.com/fruitmob/murderface-appearance"
-version "2.1.0"
+version "2.2.0"
 
 lua54 "yes"
 
