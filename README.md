@@ -62,6 +62,10 @@ Uses `provide "illenium-appearance"` plus manual export registration so existing
 - [ox_lib](https://github.com/overextended/ox_lib)
 - QBX / QBCore / ESX / ox_core (auto-detected)
 
+### Optional: Clothing Thumbnails
+
+- [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot) by **UZ** — automatic clothing thumbnail generator with transparent backgrounds. When installed, murderface-appearance detects it automatically and loads thumbnails from AutoShot's `cfx-nui` URLs. No configuration needed — just `ensure uz_AutoShot` before this resource and run `/shotmaker` to generate your images. Huge shoutout to UZ for building this and letting us integrate it!
+
 ## Commands
 
 | Command | Description |
@@ -113,4 +117,5 @@ PRs welcome — especially for new locales, bug fixes, framework compatibility, 
 ## Credits
 
 - Original illenium-appearance by [snakewiz](https://github.com/snakewiz) & [iLLeniumStudios](https://github.com/iLLeniumStudios)
+- Clothing thumbnail integration: [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot) by [UZ](https://github.com/uz-scripts) — transparent clothing screenshots served via cfx-nui
 - Tattoo support from [franfdezmorales](https://github.com/franfdezmorales/fivem-appearance)

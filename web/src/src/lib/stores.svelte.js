@@ -47,11 +47,29 @@ const ALL_CATEGORIES = [
   { name: 'Bracelets',  type: 'prop',      ids: [7],  configKeys: ['bracelets'] },
 ];
 
-// CDN image URL for clothing screenshots (FiveManage R2)
+// Clothing thumbnail sources:
+// 1. uz_AutoShot (preferred) — local cfx-nui URLs, transparent PNGs, auto-generated
+//    Credit: UZ (https://github.com/uz-scripts/uz_AutoShot)
+// 2. FiveManage R2 CDN (fallback) — pre-uploaded webp images
 const CDN_BASE = 'https://r2.fivemanage.com/UCYQxfFhJPgMhBGb0n0lw/UUID98670F42-F5F8-FFC2-61B0-23158C758820';
 
-export function getClothingImageUrl(type, id, drawable, gender) {
+// Set by store.show() when uz_AutoShot is detected on the server
+let autoShotConfig = $state(null);
+
+export function setAutoShotConfig(cfg) {
+  autoShotConfig = cfg || null;
+}
+
+export function getClothingImageUrl(type, id, drawable, gender, texture) {
   const g = gender === 1 ? 'female' : 'male';
+
+  // uz_AutoShot: {base}/{gender}/{componentId}/{drawable}_{texture}.{format}
+  if (autoShotConfig?.url) {
+    const t = texture ?? 0;
+    return `${autoShotConfig.url}/${g}/${id}/${drawable}_${t}.${autoShotConfig.format || 'png'}`;
+  }
+
+  // CDN fallback
   const t = type === 'component' ? 'Clothing' : 'Accessories';
   return `${CDN_BASE}_${g}_${t}_${id}_${drawable}.webp?v=9999`;
 }
@@ -134,6 +152,8 @@ export function createAppearanceStore() {
         ]);
         locales = loc;
         settings = settingsRes?.appearanceSettings || settingsRes;
+        // uz_AutoShot integration — use local thumbnails when available
+        if (settingsRes?.autoShot) setAutoShotConfig(settingsRes.autoShot);
         config = dataRes?.config;
         appearance = dataRes?.appearanceData;
         originalAppearance = appearance ? JSON.parse(JSON.stringify(appearance)) : null;

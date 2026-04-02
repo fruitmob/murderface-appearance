@@ -184,6 +184,25 @@ RegisterNetEvent("murderface-appearance:client:openFullMenu", function()
     }, "surgeon")
 end)
 
+-- ============ uz_AutoShot INTEGRATION ============
+-- Detects uz_AutoShot for clothing thumbnail images.
+-- When available, the NUI uses cfx-nui URLs from AutoShot instead of the CDN fallback.
+-- Credit: UZ (https://github.com/uz-scripts/uz_AutoShot) — awesome work!
+
+local autoShotBase = nil
+
+CreateThread(function()
+    if GetResourceState('uz_AutoShot') == 'started' then
+        local ok, url = pcall(exports['uz_AutoShot'].getShotsBaseURL, exports['uz_AutoShot'])
+        if ok and url then
+            autoShotBase = url
+            local fmt = exports['uz_AutoShot']:getPhotoFormat() or 'png'
+            autoShotBase = { url = url, format = fmt }
+            print('^2[murderface-appearance]^0 uz_AutoShot detected — clothing thumbnails via cfx-nui')
+        end
+    end
+end)
+
 -- ============ NUI CALLBACKS ============
 
 RegisterNUICallback("appearance_get_locales", function(_, cb)
@@ -192,7 +211,11 @@ end)
 
 RegisterNUICallback("appearance_get_settings", function(_, cb)
     Wait(250)
-    cb({ appearanceSettings = client.getAppearanceSettings() })
+    local settings = client.getAppearanceSettings()
+    cb({
+        appearanceSettings = settings,
+        autoShot = autoShotBase, -- nil if not installed, { url, format } if available
+    })
 end)
 
 RegisterNUICallback("appearance_get_data", function(_, cb)
