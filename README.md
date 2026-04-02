@@ -1,63 +1,99 @@
-# illenium-appearance
+# murderface-appearance
 
-A replacement for clothing resources for various frameworks
+Drop-in replacement for illenium-appearance with a completely rebuilt UI. Custom Svelte 5 frontend, orbital camera, and redesigned controls — works with every resource that calls `illenium-appearance` exports without changing anything.
 
-<div align='center'><h1><a href='https://docs.illenium.dev/free-resources/illenium-appearance/installation/'>Documentation</a></h3></div>
-<br>
+![Clothing Browser](screenshots/clothing.png)
 
-<img src="https://i.imgur.com/ltLSMmh.png" alt="illenium-appearance with Tattoos" />
+> Jacket thumbnails with real clothing images, category tabs with item counts, detail bar with drawable/texture stepping
 
-Discord: https://discord.illenium.dev
+## Why This Exists
 
-**Note:** Do **NOT** use the `main` branch as it will most likely be broken for you. NO SUPPORT WILL BE PROVIDED IF YOU USE IT. Only use the [latest release](https://github.com/iLLeniumStudios/illenium-appearance/releases/latest)
+The original illenium-appearance UI works but feels dated. This is a ground-up rebuild of the frontend while keeping full backend compatibility. Every export, every event, every database table — identical. Swap the resource folder and everything just works.
 
-## Supported Frameworks
+### What You Get
 
-- qb-core
-- ESX
-- ox_core
+- **Visual clothing browser** with thumbnail images per drawable — no more guessing what "Hats 37" looks like
+- **Orbital camera** — drag to orbit your character, scroll to zoom, camera presets snap to head/body/legs
+- **Properly sized controls** — 32px+ buttons, 20px slider thumbs, 24px color picker dots. Built for mouse, not mobile
+- **Editable number inputs** — type a parent ID directly instead of clicking arrows 45 times
+- **Arrow cycling** — tab arrows step through sections and categories, not just scroll the container
+- **Tattoo preview nav** — step through tattoos one by one, previewed tattoo highlights and auto-scrolls in the list
+- **Store ground markers** — color-coded rings at every clothing, barber, tattoo, and surgeon location
+- **Glassmorphic UI** — dark panel with blur, cyan accent, fills the left side of the screen
 
-## Dependencies
+### Recommended Companion
 
-- [qb-core](https://github.com/qbcore-framework/qb-core) (Latest) (Only for qb-core based servers)
-- [es_extended](https://github.com/esx-framework/esx-legacy) (Latest) (Only for ESX based servers)
-- [ox_core](https://github.com/overextended/ox_core) (experimental) (Only for ox_core based servers)
+**[uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot)** by uz-scripts generates the clothing thumbnail images. Run `/shotmaker` once per gender and every clothing variation gets captured with transparent backgrounds. Thumbnails serve locally via `cfx-nui://` — no external CDN needed. Apache 2.0 licensed.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Model Select](screenshots/model-ingame.png) | ![Clothing](screenshots/clothing.png) |
+| Model select with ped grid and freemode buttons | Clothing browser with thumbnail images per drawable |
+| ![Tattoos](screenshots/tattoos.png) | ![Outfits](screenshots/outfits.png) |
+| Tattoo browser with zones, search, opacity, preview/apply | Outfit manager — save, share, import via codes |
+
+## Compatibility
+
+Registers exports under both `murderface-appearance` and `illenium-appearance` via FiveM's `__cfx_export_` event system. Tested with:
+
+- um-multicharacter (character select skin loading)
+- qbx_core (character.lua appearance calls)
+- qbx_properties, qs-housing (wardrobe systems)
+- codem-pausemenu (skin reload)
+- mp-masks (appearance save/restore)
+- ox_inventory (clothing item handlers)
+
+## Installation
+
+1. Drop `murderface-appearance` into your resources folder
+2. `ensure murderface-appearance` in server.cfg — **before** um-multicharacter or anything that calls illenium exports
+3. Remove or stop any existing `illenium-appearance` or `bl_appearance`
+4. Restart server
+
+Uses `provide "illenium-appearance"` plus manual export registration so existing resources find it automatically.
+
+## Requirements
+
+- [oxmysql](https://github.com/overextended/oxmysql)
 - [ox_lib](https://github.com/overextended/ox_lib)
-- [qb-target](https://github.com/BerkieBb/qb-target) (Optional) (Only for qb-core based servers)
+- QBX / QBCore / ESX / ox_core (auto-detected)
+- [screenshot-basic](https://github.com/citizenfx/screenshot-basic) (if using uz_AutoShot)
 
-## Features
+## Commands
 
-- Everything from standalone fivem-appearance
-- UI from OX Lib
-- Player outfits
-- Rank based Clothing Rooms for Jobs / Gangs
-- Job / Gang locked Stores
-- Tattoo's Support
-- Hair Textures
-- Polyzone Support
-- Ped Menu command (/pedmenu) (Configurable)
-- Reload Skin command (/reloadskin)
-- Improved code quality
-- Plastic Surgeons
-- qb-target Support
-- Skin migration support (qb-clothing / old fivem-appearance / esx_skin)
-- Player specific outfit locations (Restricted via CitizenID)
-- Makeup Secondary Color
-- Blacklist / Limit Components & Props to certain Jobs / Gangs / CitizenIDs / ACEs (Allows you to have VIP clothing on your Server)
-- Blacklist / Limit Peds to certain Jobs / Gangs / CitizenIDs / ACEs
-- Persist Job / Gang Clothes on reconnects / logout
-- Themes Support (Default & QBCore provided out of the box)
-- Disable Components / Props Entirely (Clothing as items support)
+| Command | Description |
+|---------|-------------|
+| `/clothing` | Clothing shop (components + props) |
+| `/barber` | Barber shop (hair + overlays) |
+| `/tattoo` | Tattoo shop |
+| `/outfits` | Outfit manager |
+| `/appearance` | Full customization (all sections) |
+| `/reloadskin` | Reload appearance from database |
+| `/clearstuckprops` | Remove stuck attached objects |
+| `/pedmenu [id]` | Admin: full menu on self or target player |
 
-## New Preview (with Tattoos)
+## Database
 
-https://streamable.com/qev2h7
+Same `playerskins` and `player_outfits` tables as illenium-appearance. No migration needed.
 
-## Documentation
+## Config
 
-Read the docs here: https://docs.illenium.dev
+Everything in `shared/config.lua` — store locations, pricing, clothing rooms, blacklists, theme. Store interaction uses `[E]` text UI with `lib.zones` and ground ring markers within 30m.
+
+## Building the UI
+
+```
+cd web/src
+npm install
+npm run build
+```
+
+Outputs to `web/dist/`. The build is IIFE format for FiveM CEF compatibility (no ES modules).
 
 ## Credits
-- Original Script: https://github.com/pedr0fontoura/fivem-appearance
-- Tattoo's Support: https://github.com/franfdezmorales/fivem-appearance
-- Last Maintained Fork for QB: https://github.com/mirrox1337/aj-fivem-appearance
+
+- Original illenium-appearance by [snakewiz](https://github.com/snakewiz) & [iLLeniumStudios](https://github.com/iLLeniumStudios)
+- [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot) by uz-scripts
+- Tattoo support from [franfdezmorales](https://github.com/franfdezmorales/fivem-appearance)
