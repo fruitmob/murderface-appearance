@@ -62,9 +62,24 @@ Uses `provide "illenium-appearance"` plus manual export registration so existing
 - [ox_lib](https://github.com/overextended/ox_lib)
 - QBX / QBCore / ESX / ox_core (auto-detected)
 
-### Optional: Clothing Thumbnails
+### Optional: Clothing Thumbnails with uz_AutoShot
 
-- [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot) by **UZ** — automatic clothing thumbnail generator with transparent backgrounds. When installed, murderface-appearance detects it automatically and loads thumbnails from AutoShot's `cfx-nui` URLs. No configuration needed — just `ensure uz_AutoShot` before this resource and run `/shotmaker` to generate your images. Huge shoutout to UZ for building this and letting us integrate it!
+[**uz_AutoShot**](https://github.com/uz-scripts/uz_AutoShot) by **UZ** — automatic clothing thumbnail generator with transparent backgrounds. Captures every drawable/texture variation via an in-game green screen studio, then serves them as transparent PNGs through FiveM's native `cfx-nui` protocol.
+
+| | |
+|---|---|
+| ![Capture Studio — bracelet preset](screenshots/autoshot/capture-studio.png) | ![Capture Studio — tops preset](screenshots/autoshot/capture-tops.png) |
+| Magenta chroma key studio with orbit camera and capture UI | Automatic capture iterates every drawable variation |
+| ![Thumbnail — hat](screenshots/autoshot/thumbnail-hat.png) | ![Thumbnail — top](screenshots/autoshot/thumbnail-top.png) |
+| Finished transparent thumbnail — hats | Finished transparent thumbnail — tops |
+
+When installed, murderface-appearance detects it automatically and loads thumbnails from AutoShot — no configuration needed.
+
+1. Install [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot/releases/tag/1.1.2) and `ensure uz_AutoShot` before this resource
+2. In-game: `/shotmaker` to open the capture studio and generate images
+3. Restart — thumbnails load automatically in the clothing browser
+
+Huge shoutout to UZ for building this and letting us integrate it — go star [their repo](https://github.com/uz-scripts/uz_AutoShot)!
 
 ## Commands
 
