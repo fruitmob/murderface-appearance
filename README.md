@@ -6,6 +6,8 @@ Drop-in replacement for illenium-appearance with a completely rebuilt UI. Custom
 
 > Jacket thumbnails with real clothing images, category tabs with item counts, detail bar with drawable/texture stepping
 
+### [Video Walkthrough](https://www.youtube.com/watch?v=9jtR9ljcFWw)
+
 ## Why This Exists
 
 The original illenium-appearance UI works but feels dated. This is a ground-up rebuild of the frontend while keeping full backend compatibility. Every export, every event, every database table — identical. Swap the resource folder and everything just works.
