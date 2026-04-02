@@ -1,0 +1,78 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below so we can reproduce and fix it.
+
+  - type: input
+    id: version
+    attributes:
+      label: Script Version
+      description: Which commit or version are you running?
+      placeholder: e.g. v2.1.0, commit abc1234
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: Tell us what went wrong...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: How can we trigger this bug?
+      placeholder: |
+        1. Open /appearance command
+        2. Navigate to Clothing tab
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: errors
+    attributes:
+      label: Server/client console errors
+      description: Paste any error output from the F8 console or server terminal.
+      render: text
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - Qbox (qbx_core)
+        - QBCore (qb-core)
+        - ESX
+        - ox_core
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: game_build
+    attributes:
+      label: Game build
+      placeholder: e.g. 3258
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, config changes, clothing packs installed, character creation or barber, etc.
