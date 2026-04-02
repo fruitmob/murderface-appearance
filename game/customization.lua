@@ -553,10 +553,9 @@ function client.startPlayerCustomization(cb, conf)
     SetEntityAlpha(cache.ped, 255, false)
     ResetEntityAlpha(cache.ped)
 
-    setCamera("default")
+    -- FMRP: Don't create old-style camera here — orbital camera inits in appearance_get_data callback
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
-    RenderScriptCams(true, false, 0, true, true)
     SetEntityInvincible(cache.ped, Config.InvincibleDuringCustomization)
     TaskStandStill(cache.ped, -1)
 
@@ -571,8 +570,11 @@ function client.startPlayerCustomization(cb, conf)
 end
 
 function client.exitPlayerCustomization(appearance)
-    RenderScriptCams(false, false, 0, true, true)
-    DestroyCam(cameraHandle, false)
+    -- FMRP: Old camera cleanup (if somehow still active from legacy code)
+    if cameraHandle then
+        RenderScriptCams(false, false, 0, true, true)
+        DestroyCam(cameraHandle, false)
+    end
     SetNuiFocus(false, false)
 
     if Config.HideRadar then DisplayRadar(true) end

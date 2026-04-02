@@ -120,8 +120,32 @@
 
   // ---- TABS SCROLL ----
   let tabsEl = $state(null);
-  function scrollTabsLeft() { if (tabsEl) tabsEl.scrollLeft -= 120; }
-  function scrollTabsRight() { if (tabsEl) tabsEl.scrollLeft += 120; }
+  // FMRP: Cycle through categories with arrows + auto-scroll active into view
+  function scrollTabsLeft() {
+    const cats = store.categories;
+    if (!cats || cats.length === 0) return;
+    const idx = cats.findIndex(c => c.name === store.activeCategory);
+    const prev = idx > 0 ? cats[idx - 1] : cats[cats.length - 1];
+    store.activeCategory = prev.name;
+    store.setCamera('default');
+    scrollActiveCatIntoView();
+  }
+  function scrollTabsRight() {
+    const cats = store.categories;
+    if (!cats || cats.length === 0) return;
+    const idx = cats.findIndex(c => c.name === store.activeCategory);
+    const next = idx < cats.length - 1 ? cats[idx + 1] : cats[0];
+    store.activeCategory = next.name;
+    store.setCamera('default');
+    scrollActiveCatIntoView();
+  }
+  function scrollActiveCatIntoView() {
+    requestAnimationFrame(() => {
+      if (!tabsEl) return;
+      const activeBtn = tabsEl.querySelector('.tab.active');
+      if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+  }
 
   // ---- CLOTHING TOGGLE STATE ----
   let strippedRegions = $state({ head: false, body: false, bottom: false });
@@ -454,7 +478,7 @@
   }
 
   .location { display: flex; gap: 8px; align-items: center; }
-  .store-name { font-size: 15px; font-weight: 600; color: var(--accent); opacity: 0.8; }
+  .store-name { font-size: 16px; font-weight: 600; color: var(--accent); opacity: 0.9; letter-spacing: 0.3px; }
   .store-location { font-size: 15px; color: rgba(170, 170, 175, 1); }
 
   .header-right { text-align: right; }
@@ -486,9 +510,10 @@
   .section-btn {
     flex: 1;
     min-width: 60px;
-    padding: 8px 0;
+    padding: 10px 0;
+    min-height: 38px;
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     font-family: var(--font);
     letter-spacing: 0.5px;
@@ -517,8 +542,8 @@
   }
 
   .tabs-arrow {
-    width: 24px;
-    height: 28px;
+    width: 32px;
+    height: 36px;
     border-radius: 6px;
     background: rgba(18, 19, 24, 0.8);
     border: 1px solid rgba(30, 32, 40, 0.4);
@@ -547,20 +572,22 @@
   .tabs::-webkit-scrollbar { display: none; }
 
   .tab {
-    padding: 7px 14px;
+    padding: 9px 16px;
+    min-height: 36px;
     border-radius: var(--radius-pill);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     font-family: var(--font);
     color: var(--text-secondary);
     background: rgba(18, 19, 24, 0.8);
-    border: 1px solid rgba(30, 32, 40, 0.4);
+    border: 1px solid rgba(35, 38, 48, 0.5);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 
-  .tab:hover { color: var(--text-primary); border-color: rgba(60, 65, 78, 0.6); background: rgba(25, 26, 32, 0.9); }
+  .tab:hover { color: var(--text-primary); border-color: rgba(60, 65, 78, 0.6); background: rgba(28, 30, 38, 0.9); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
   .tab-count {
     font-size: 10px;
     font-weight: 500;
@@ -602,15 +629,14 @@
 
   .card:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(0, 255, 235, 0.15);
+    border-color: var(--accent-border);
     transform: scale(1.02);
-    box-shadow: 0 0 12px rgba(0, 255, 235, 0.04);
+    box-shadow: 0 0 12px var(--accent-glow);
   }
 
   .card.selected {
     background: var(--bg-card-selected);
-    border: 2px solid var(--accent);
-    border-color: rgba(0, 255, 235, 0.55);
+    border: 2px solid var(--accent-border);
     box-shadow: 0 0 20px var(--accent-glow), inset 0 0 20px var(--accent-glow);
   }
 
@@ -620,13 +646,15 @@
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .card-img {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
-    background: rgba(20, 22, 28, 0.8);
   }
 
   .card-placeholder {
@@ -669,10 +697,11 @@
   .toggle-btn.stripped { color: var(--red); border-color: var(--red-border); background: var(--red-dim); }
 
   .drawable-input {
-    width: 42px; text-align: center; padding: 2px 4px;
+    width: 50px; text-align: center; padding: 4px 6px;
+    min-height: 32px;
     background: var(--bg-input); border: 1px solid var(--border);
-    border-radius: 4px; color: var(--accent); font-size: 12px;
-    font-family: var(--font); font-weight: 600; outline: none;
+    border-radius: 6px; color: var(--accent); font-size: 16px;
+    font-family: var(--font); font-weight: 700; outline: none;
     -moz-appearance: textfield;
   }
   .drawable-input::-webkit-inner-spin-button,
@@ -702,7 +731,7 @@
   .detail-row { display: flex; gap: 12px; align-items: baseline; margin-top: 4px; }
   .detail-name { font-size: 17px; font-weight: 600; }
   .tex-btn {
-    width: 28px; height: 28px;
+    width: 32px; height: 32px;
     border-radius: 6px;
     background: rgba(0, 255, 235, 0.1);
     border: 1px solid var(--accent-border);
@@ -716,7 +745,7 @@
     transition: background 0.15s;
   }
   .tex-btn:hover { background: rgba(0, 255, 235, 0.2); }
-  .tex-value { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 55px; }
+  .tex-value { font-size: 18px; font-weight: 700; color: var(--accent); min-width: 55px; }
 
   .remove-btn {
     width: 36px; height: 36px;
@@ -789,11 +818,11 @@
     right: 20px;
     top: 50%;
     transform: translateY(-50%);
-    width: 80px;
+    width: 90px;
     background: rgba(9, 10, 14, 0.88);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border);
-    border-radius: 40px;
+    border-radius: 44px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -802,12 +831,13 @@
   }
 
   .cam-btn {
-    width: 68px;
-    padding: 10px 0;
+    width: 76px;
+    padding: 12px 0;
+    min-height: 40px;
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     font-family: var(--font);
     cursor: pointer;

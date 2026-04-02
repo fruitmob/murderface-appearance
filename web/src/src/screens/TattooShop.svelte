@@ -96,27 +96,58 @@
   // Quick preview navigation with arrows
   let previewIndex = $state(-1);
 
+  let previewingName = $state(null);
+
   function stepPreview(delta) {
     const tattoos = getTattoos();
     if (tattoos.length === 0) return;
-    // Flatten grouped list
     const flat = getGroupedTattoos().flatMap(([_, tats]) => tats);
     if (flat.length === 0) return;
     previewIndex = Math.max(0, Math.min(flat.length - 1, previewIndex + delta));
     const tattoo = flat[previewIndex];
     expandedTattoo = tattoo.name;
+    previewingName = tattoo.name;
     handlePreview(tattoo);
+    // FMRP: Auto-scroll the previewed tattoo into view
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.tattoo-item.previewing');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   let zoneNavEl;
-  function scrollZonesLeft() { if (zoneNavEl) zoneNavEl.scrollLeft -= 100; }
-  function scrollZonesRight() { if (zoneNavEl) zoneNavEl.scrollLeft += 100; }
+  // FMRP: Cycle through zones with arrows + auto-scroll active into view
+  function cycleZoneLeft() {
+    const idx = ZONES.findIndex(z => z.id === activeZone);
+    const prev = idx > 0 ? ZONES[idx - 1] : ZONES[ZONES.length - 1];
+    activeZone = prev.id;
+    expandedTattoo = null;
+    previewIndex = -1;
+    store.setCamera(prev.id === 'ZONE_HEAD' ? 'head' : prev.id.includes('LEG') ? 'bottom' : 'body');
+    scrollActiveZoneIntoView();
+  }
+  function cycleZoneRight() {
+    const idx = ZONES.findIndex(z => z.id === activeZone);
+    const next = idx < ZONES.length - 1 ? ZONES[idx + 1] : ZONES[0];
+    activeZone = next.id;
+    expandedTattoo = null;
+    previewIndex = -1;
+    store.setCamera(next.id === 'ZONE_HEAD' ? 'head' : next.id.includes('LEG') ? 'bottom' : 'body');
+    scrollActiveZoneIntoView();
+  }
+  function scrollActiveZoneIntoView() {
+    requestAnimationFrame(() => {
+      if (!zoneNavEl) return;
+      const activeBtn = zoneNavEl.querySelector('.zone-tab.active');
+      if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+  }
 </script>
 
 <div class="tattoo-shop">
   <!-- Zone tabs with scroll arrows -->
   <div class="zone-nav-wrap">
-    <button class="nav-arrow" onclick={scrollZonesLeft}>&#8249;</button>
+    <button class="nav-arrow" onclick={cycleZoneLeft}>&#8249;</button>
     <div class="zone-tabs" bind:this={zoneNavEl}>
       {#each ZONES as zone}
         <button class="zone-tab" class:active={activeZone === zone.id}
@@ -125,7 +156,7 @@
         </button>
       {/each}
     </div>
-    <button class="nav-arrow" onclick={scrollZonesRight}>&#8250;</button>
+    <button class="nav-arrow" onclick={cycleZoneRight}>&#8250;</button>
   </div>
 
   <p class="section-desc" style="padding: 0 16px 6px;">Select a zone and browse tattoos. Tap a tattoo card to expand and adjust its opacity.</p>
@@ -155,7 +186,7 @@
       {#each tattoos as tattoo (tattoo.name)}
         {@const applied = isApplied(tattoo)}
         {@const expanded = expandedTattoo === tattoo.name || applied}
-        <div class="tattoo-item" class:applied class:expanded
+        <div class="tattoo-item" class:applied class:expanded class:previewing={previewingName === tattoo.name}
           onclick={() => toggleExpand(tattoo)}>
           <div class="tattoo-row">
             <div class="tattoo-info">
@@ -244,6 +275,11 @@
   .tattoo-item:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
   .tattoo-item.applied { border-color: rgba(0, 255, 235, 0.3); background: rgba(0, 18, 16, 0.6); }
   .tattoo-item.expanded { border-color: var(--border-hover); }
+  .tattoo-item.previewing {
+    border-color: rgba(255, 200, 0, 0.5);
+    background: rgba(40, 30, 0, 0.4);
+    box-shadow: 0 0 12px rgba(255, 200, 0, 0.1);
+  }
 
   .tattoo-row { display: flex; justify-content: space-between; align-items: center; }
   .tattoo-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }

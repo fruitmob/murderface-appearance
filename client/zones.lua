@@ -34,8 +34,15 @@ local function onStoreEnter(data)
     local index = lookupZoneIndexFromID(Zones.Store, data.id)
     local store = Config.Stores[index]
 
-    local jobName = (store.job and client.job.name) or (store.gang and client.gang.name)
-    if jobName == (store.job or store.gang) then
+    -- FMRP: Public stores (no job/gang restriction) always allow entry
+    local isAllowed = true
+    if store.job then
+        isAllowed = client.job and client.job.name == store.job
+    elseif store.gang then
+        isAllowed = client.gang and client.gang.name == store.gang
+    end
+
+    if isAllowed then
         currentZone = {
             name = store.type,
             index = index
@@ -171,6 +178,81 @@ local function ZonesLoop()
     end
 end
 
+-- FMRP: Ground marker colors per shop type (RGBA 0-255)
+local MARKER_COLORS = {
+    clothing = { r = 0, g = 200, b = 200, a = 120 },   -- cyan
+    barber   = { r = 200, g = 150, b = 50, a = 120 },   -- gold
+    tattoo   = { r = 180, g = 50, b = 50, a = 120 },    -- red
+    surgeon  = { r = 50, g = 180, b = 50, a = 120 },    -- green
+}
+
+-- FMRP: Draw ground ring markers at all store locations within render distance
+local function MarkerLoop()
+    local markerType = 25      -- flat ring (downward-pointing cylinder)
+    local markerScale = vector3(1.5, 1.5, 0.5)
+    local renderDist = 30.0    -- only draw within 30m
+
+    while true do
+        local sleep = 500
+        local playerCoords = GetEntityCoords(cache.ped)
+        local nearbyStores = {}
+
+        -- Collect stores within render distance
+        for i = 1, #Config.Stores do
+            local store = Config.Stores[i]
+            local storeCoords = store.coords
+            if storeCoords then
+                local dist = #(playerCoords - vector3(storeCoords.x, storeCoords.y, storeCoords.z))
+                if dist < renderDist then
+                    nearbyStores[#nearbyStores + 1] = store
+                end
+            end
+        end
+
+        -- Also check clothing rooms and outfit rooms
+        if Config.ClothingRooms then
+            for i = 1, #Config.ClothingRooms do
+                local room = Config.ClothingRooms[i]
+                if room.coords then
+                    local dist = #(playerCoords - vector3(room.coords.x, room.coords.y, room.coords.z))
+                    if dist < renderDist then
+                        nearbyStores[#nearbyStores + 1] = { coords = room.coords, type = "clothing" }
+                    end
+                end
+            end
+        end
+
+        if Config.PlayerOutfitRooms then
+            for i = 1, #Config.PlayerOutfitRooms do
+                local room = Config.PlayerOutfitRooms[i]
+                if room.coords then
+                    local dist = #(playerCoords - vector3(room.coords.x, room.coords.y, room.coords.z))
+                    if dist < renderDist then
+                        nearbyStores[#nearbyStores + 1] = { coords = room.coords, type = "clothing" }
+                    end
+                end
+            end
+        end
+
+        if #nearbyStores > 0 then
+            sleep = 0
+            for _, store in ipairs(nearbyStores) do
+                local c = MARKER_COLORS[store.type] or MARKER_COLORS.clothing
+                DrawMarker(markerType,
+                    store.coords.x, store.coords.y, store.coords.z - 0.98,
+                    0.0, 0.0, 0.0,    -- direction
+                    0.0, 0.0, 0.0,    -- rotation
+                    markerScale.x, markerScale.y, markerScale.z,
+                    c.r, c.g, c.b, c.a,
+                    false, false, 2,   -- bob, faceCamera, p19
+                    false, nil, nil, false  -- rotate, textureDict, textureName, drawOnEnts
+                )
+            end
+        end
+
+        Wait(sleep)
+    end
+end
 
 CreateThread(function()
     SetupZones()
@@ -178,6 +260,9 @@ CreateThread(function()
         ZonesLoop()
     end
 end)
+
+-- FMRP: Start marker drawing on its own thread
+CreateThread(MarkerLoop)
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then

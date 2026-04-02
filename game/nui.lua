@@ -51,6 +51,7 @@ local function destroyOrbitCameras()
     RenderScriptCams(false, false, 0, true, true)
     orbitTargetCoords = nil
     changingCam = false
+    orbitInitialized = false
 end
 
 local function getBoneCoords(ped, preset)
@@ -62,13 +63,22 @@ local function getBoneCoords(ped, preset)
     return GetPedBoneCoords(ped, boneId, 0.0, 0.0, 0.0)
 end
 
+local orbitInitialized = false
+
 local function moveCamera(ped, preset)
     local newTarget = getBoneCoords(ped, preset)
     local newDist = CAMERA_DISTANCES[preset] or 1.8
 
     changingCam = true
     orbitDistance = newDist
-    orbitAngleZ = GetEntityHeading(ped) + 180.0
+    -- FMRP: Only set initial angle on first camera init, preserve user rotation on preset changes
+    -- Math: GTA entity forward = (-sin(H), cos(H)), orbital offset = (cos(θ), sin(θ))
+    -- Setting cos(θ)=-sin(H) and sin(θ)=cos(H) → θ = 90 + H (camera directly in front of ped face)
+    if not orbitInitialized then
+        orbitAngleZ = 90.0 + GetEntityHeading(ped)
+        orbitAngleY = 0.0
+        orbitInitialized = true
+    end
     orbitTargetCoords = newTarget
 
     local ox, oy, oz = getOrbitOffset()
@@ -134,6 +144,34 @@ RegisterCommand("outfits", function()
     openCustomization({ components = true, props = true }, "clothing")
 end, false)
 
+-- ============ MISSING ILLENIUM COMMANDS ============
+
+RegisterCommand("reloadskin", function()
+    TriggerEvent("illenium-appearance:client:reloadSkin", false)
+end, false)
+
+RegisterCommand("clearstuckprops", function()
+    TriggerEvent("illenium-appearance:client:ClearStuckProps")
+end, false)
+
+RegisterCommand("pedmenu", function(_, args)
+    local targetId = tonumber(args[1])
+    if targetId then
+        -- Admin: open full menu on target player (requires ace)
+        TriggerServerEvent("illenium-appearance:server:openPedMenu", targetId)
+    else
+        openCustomization({
+            ped = true,
+            headBlend = true,
+            faceFeatures = true,
+            headOverlays = true,
+            components = true,
+            props = true,
+            tattoos = true,
+        }, "surgeon")
+    end
+end, true) -- ACE restricted
+
 RegisterNetEvent("murderface-appearance:client:openFullMenu", function()
     openCustomization({
         ped = true,
@@ -163,6 +201,10 @@ RegisterNUICallback("appearance_get_data", function(_, cb)
     if appearanceData.tattoos then
         client.setPedTattoos(cache.ped, appearanceData.tattoos)
     end
+    -- FMRP: Initialize orbital camera on NUI open (replaces old camera system)
+    if not orbitCam then
+        moveCamera(PlayerPedId(), "default")
+    end
     cb({ config = client.getConfig(), appearanceData = appearanceData })
 end)
 
@@ -180,7 +222,7 @@ end)
 
 RegisterNUICallback("murderface_rotate", function(data, cb)
     cb(1)
-    if changingCam then return end
+    if not orbitCam then return end -- FMRP: wait for orbital cam to be created
     local dx = tonumber(data.deltaX) or 0
     local dy = tonumber(data.deltaY) or 0
     orbitAngleZ = orbitAngleZ - dx * 0.3
@@ -202,10 +244,20 @@ RegisterNUICallback("appearance_change_model", function(model, cb)
     SetEntityInvincible(playerPed, true)
     TaskStandStill(playerPed, -1)
 
-    cb({
-        appearanceSettings = client.getAppearanceSettings(),
-        appearanceData = client.getPedAppearance(playerPed)
-    })
+    -- FMRP: Try loading saved appearance from DB for this model (prevents losing customization on model revert)
+    local savedAppearance = lib.callback.await("illenium-appearance:server:getAppearance", false, model)
+    if savedAppearance and savedAppearance.model == model then
+        client.setPedAppearance(playerPed, savedAppearance)
+        cb({
+            appearanceSettings = client.getAppearanceSettings(),
+            appearanceData = savedAppearance
+        })
+    else
+        cb({
+            appearanceSettings = client.getAppearanceSettings(),
+            appearanceData = client.getPedAppearance(playerPed)
+        })
+    end
 end)
 
 RegisterNUICallback("appearance_change_component", function(component, cb)

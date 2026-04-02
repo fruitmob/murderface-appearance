@@ -140,8 +140,27 @@
   let subNavEl;
   let pedSearchQuery = $state('');
 
-  function scrollSubLeft() { if (subNavEl) subNavEl.scrollLeft -= 100; }
-  function scrollSubRight() { if (subNavEl) subNavEl.scrollLeft += 100; }
+  // FMRP: Cycle through sections with arrows (not just scroll)
+  function cycleSubLeft() {
+    const idx = sections.findIndex(s => s.id === activeSection);
+    const prev = idx > 0 ? sections[idx - 1] : sections[sections.length - 1];
+    setSection(prev);
+    scrollActiveTabIntoView();
+  }
+  function cycleSubRight() {
+    const idx = sections.findIndex(s => s.id === activeSection);
+    const next = idx < sections.length - 1 ? sections[idx + 1] : sections[0];
+    setSection(next);
+    scrollActiveTabIntoView();
+  }
+  function scrollActiveTabIntoView() {
+    // After Svelte updates DOM, scroll the active tab into view
+    requestAnimationFrame(() => {
+      if (!subNavEl) return;
+      const activeBtn = subNavEl.querySelector('.section-tab.active');
+      if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
+  }
 
   // Ped model helpers
   const FREEMODE_PEDS = ['mp_m_freemode_01', 'mp_f_freemode_01'];
@@ -237,7 +256,7 @@
 <div class="creator">
   <!-- Section Navigation with scroll arrows -->
   <div class="section-nav-wrap">
-    <button class="nav-arrow" onclick={scrollSubLeft}>&#8249;</button>
+    <button class="nav-arrow" onclick={cycleSubLeft}>&#8249;</button>
     <div class="section-nav" bind:this={subNavEl}>
       {#each sections as s}
         <button
@@ -252,7 +271,7 @@
         Dice
       </button>
     </div>
-    <button class="nav-arrow" onclick={scrollSubRight}>&#8250;</button>
+    <button class="nav-arrow" onclick={cycleSubRight}>&#8250;</button>
   </div>
 
   <!-- Section Content -->
@@ -313,19 +332,37 @@
         <p class="section-desc">Choose your character's parents to define facial structure and skin tone.</p>
 
         <div class="slider-card">
-          <span class="slider-card-label">Parent Selection</span>
+          <span class="slider-card-label">Mother</span>
           {#each [
-            { key: 'shapeFirst', label: 'Mother (Shape)' },
-            { key: 'shapeSecond', label: 'Father (Shape)' },
-            { key: 'skinFirst', label: 'Mother (Skin)' },
-            { key: 'skinSecond', label: 'Father (Skin)' },
+            { key: 'shapeFirst', label: 'Face Shape' },
+            { key: 'skinFirst', label: 'Skin Tone' },
           ] as { key, label }}
             <div class="slider-group">
               <label class="slider-label">
                 <span>{label}</span>
                 <div class="step-arrows">
                   <button class="step-btn" onclick={() => handleHeadBlendChange(key, Math.max(0, getHeadBlendValue(key) - 1))}>&#8249;</button>
-                  <span class="slider-value">{getHeadBlendValue(key)}</span>
+                  <input type="number" class="step-input" min="0" max="45" value={getHeadBlendValue(key)} onchange={(e) => handleHeadBlendChange(key, Math.min(45, Math.max(0, parseInt(e.target.value) || 0)))} />
+                  <button class="step-btn" onclick={() => handleHeadBlendChange(key, Math.min(45, getHeadBlendValue(key) + 1))}>&#8250;</button>
+                </div>
+              </label>
+              <input type="range" class="slider" min="0" max="45" step="1" value={getHeadBlendValue(key)} oninput={(e) => handleHeadBlendChange(key, e.target.value)} />
+            </div>
+          {/each}
+        </div>
+
+        <div class="slider-card">
+          <span class="slider-card-label">Father</span>
+          {#each [
+            { key: 'shapeSecond', label: 'Face Shape' },
+            { key: 'skinSecond', label: 'Skin Tone' },
+          ] as { key, label }}
+            <div class="slider-group">
+              <label class="slider-label">
+                <span>{label}</span>
+                <div class="step-arrows">
+                  <button class="step-btn" onclick={() => handleHeadBlendChange(key, Math.max(0, getHeadBlendValue(key) - 1))}>&#8249;</button>
+                  <input type="number" class="step-input" min="0" max="45" value={getHeadBlendValue(key)} onchange={(e) => handleHeadBlendChange(key, Math.min(45, Math.max(0, parseInt(e.target.value) || 0)))} />
                   <button class="step-btn" onclick={() => handleHeadBlendChange(key, Math.min(45, getHeadBlendValue(key) + 1))}>&#8250;</button>
                 </div>
               </label>
@@ -338,11 +375,11 @@
           <span class="slider-card-label">Blend Mix</span>
           <div class="slider-group">
             <label class="slider-label"><span>Shape Mix</span><span class="slider-value">{(getHeadBlendValue('shapeMix') * 100).toFixed(0)}%</span></label>
-            <input type="range" class="slider" min="0" max="1" step="0.1" value={getHeadBlendValue('shapeMix')} oninput={(e) => handleHeadBlendChange('shapeMix', e.target.value)} />
+            <input type="range" class="slider filled" min="0" max="1" step="0.1" value={getHeadBlendValue('shapeMix')} style="--fill: {(getHeadBlendValue('shapeMix') * 100)}%" oninput={(e) => handleHeadBlendChange('shapeMix', e.target.value)} />
           </div>
           <div class="slider-group">
             <label class="slider-label"><span>Skin Mix</span><span class="slider-value">{(getHeadBlendValue('skinMix') * 100).toFixed(0)}%</span></label>
-            <input type="range" class="slider" min="0" max="1" step="0.1" value={getHeadBlendValue('skinMix')} oninput={(e) => handleHeadBlendChange('skinMix', e.target.value)} />
+            <input type="range" class="slider filled" min="0" max="1" step="0.1" value={getHeadBlendValue('skinMix')} style="--fill: {(getHeadBlendValue('skinMix') * 100)}%" oninput={(e) => handleHeadBlendChange('skinMix', e.target.value)} />
           </div>
         </div>
       </div>
@@ -646,7 +683,7 @@
   .model-btn:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
   .model-btn.active {
     background: var(--bg-card-selected);
-    border-color: rgba(0, 255, 235, 0.5);
+    border-color: var(--accent-border);
     color: var(--accent);
     box-shadow: 0 0 16px var(--accent-glow);
   }
@@ -682,7 +719,7 @@
   }
   .ped-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
   .ped-card.active {
-    border-color: rgba(0, 255, 235, 0.5);
+    border-color: var(--accent-border);
     background: var(--bg-card-selected);
   }
 
@@ -718,13 +755,33 @@
     gap: 8px;
   }
   .slider-card-label {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
+    letter-spacing: 1px;
+    color: var(--accent);
+    opacity: 0.6;
     margin-bottom: 2px;
   }
+
+  /* Editable number input in step arrows */
+  .step-input {
+    width: 44px;
+    height: 32px;
+    text-align: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font);
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .step-input::-webkit-inner-spin-button,
+  .step-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .step-input:focus { border-color: var(--accent-border); }
 
   /* ---- SLIDERS ---- */
   .slider-group {
@@ -738,38 +795,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-secondary);
   }
 
   .slider-value {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--accent);
-    min-width: 35px;
+    min-width: 40px;
     text-align: right;
   }
 
   .slider {
     width: 100%;
-    height: 4px;
+    height: 6px;
     -webkit-appearance: none;
     appearance: none;
     background: rgba(30, 32, 40, 0.8);
-    border-radius: 2px;
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
   }
 
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--text-primary);
     border: 2px solid rgba(30, 32, 40, 1);
     cursor: pointer;
     transition: background 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
   .slider::-webkit-slider-thumb:hover { background: var(--accent); }
 
@@ -778,9 +836,19 @@
     border-color: rgba(0, 100, 90, 0.5);
   }
 
+  /* Filled track — shows progress from left via gradient trick */
+  .slider.filled {
+    background: linear-gradient(to right,
+      var(--accent-dim) 0%,
+      var(--accent-dim) var(--fill, 50%),
+      rgba(30, 32, 40, 0.8) var(--fill, 50%),
+      rgba(30, 32, 40, 0.8) 100%
+    );
+  }
+
   /* ---- OVERLAYS ---- */
   .overlay-group {
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border);
   }
   .overlay-group:last-child { border-bottom: none; }
@@ -823,7 +891,7 @@
   .eye-btn.active {
     color: var(--accent);
     background: var(--bg-card-selected);
-    border-color: rgba(0, 255, 235, 0.5);
+    border-color: var(--accent-border);
     font-weight: 600;
   }
 </style>

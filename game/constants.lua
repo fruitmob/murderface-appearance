@@ -38,6 +38,7 @@ constants.HEAD_OVERLAYS = {
     "moleAndFreckles",
     "chestHair",
     "bodyBlemishes",
+    "addBodyBlemishes",
 }
 
 -- Thanks to rootcause for the eye colors names and hair decorations hashes.

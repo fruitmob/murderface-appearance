@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "murderface-appearance",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173,
+      "name": "appearance-ui",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5175", "--host"],
+      "port": 5175,
       "cwd": "web/src"
     }
   ]

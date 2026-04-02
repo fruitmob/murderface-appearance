@@ -70,28 +70,28 @@ input, textarea { user-select: text; -webkit-user-select: text; }
 
 /* Shared: Color picker grid (real RGB from game natives) */
 .color-picker {
-  display: flex; flex-wrap: wrap; gap: 3px;
-  margin-top: 4px; max-height: 80px; overflow-y: auto;
-  padding: 2px;
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 6px; max-height: 100px; overflow-y: auto;
+  padding: 3px;
 }
 .color-dot {
-  width: 18px; height: 18px; border-radius: 4px;
+  width: 24px; height: 24px; border-radius: 5px;
   border: 2px solid transparent; cursor: pointer;
   transition: all 0.12s; flex-shrink: 0;
 }
-.color-dot:hover { transform: scale(1.2); border-color: rgba(255,255,255,0.5); }
-.color-dot.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,255,235,0.5); transform: scale(1.15); }
+.color-dot:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.5); }
+.color-dot.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,255,235,0.5); transform: scale(1.1); }
 
 /* Shared: Step arrows for sliders */
-.step-arrows { display: flex; align-items: center; gap: 4px; }
+.step-arrows { display: flex; align-items: center; gap: 6px; }
 .step-btn {
-  width: 20px; height: 20px; border-radius: 4px;
+  width: 32px; height: 32px; border-radius: 6px;
   background: rgba(18, 19, 24, 0.8); border: 1px solid rgba(30, 32, 40, 0.4);
-  color: var(--text-secondary); font-size: 14px; cursor: pointer;
+  color: var(--text-secondary); font-size: 16px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font); transition: all 0.12s; flex-shrink: 0;
 }
-.step-btn:hover { color: var(--accent); border-color: var(--accent-border); }
+.step-btn:hover { color: var(--accent); border-color: var(--accent-border); background: rgba(0, 255, 235, 0.06); }
 
 /* Shared: Color gradient preview strips */
 .color-gradient-hair {
@@ -101,7 +101,7 @@ input, textarea { user-select: text; -webkit-user-select: text; }
     #f5deb3 48%, #faebd7 54%, #ffffff 60%,
     #c84040 66%, #8b0000 72%, #4b0082 78%,
     #ff69b4 84%, #00c8ff 90%, #40ff40 96%);
-  height: 10px; border-radius: 4px; margin-top: 3px; opacity: 0.85;
+  height: 16px; border-radius: 5px; margin-top: 4px; opacity: 0.85;
 }
 .color-gradient-makeup {
   background: linear-gradient(to right,
@@ -109,33 +109,34 @@ input, textarea { user-select: text; -webkit-user-select: text; }
     #c87070 32%, #e06060 40%, #ff4040 48%,
     #cc3366 56%, #993399 64%, #6633cc 72%,
     #ff69b4 80%, #ff1493 88%, #800040 96%);
-  height: 10px; border-radius: 4px; margin-top: 3px; opacity: 0.85;
+  height: 16px; border-radius: 5px; margin-top: 4px; opacity: 0.85;
 }
 
 /* Shared: Reset button */
 .reset-btn {
-  font-size: 10px; font-family: var(--font); font-weight: 500;
-  color: var(--text-muted); cursor: pointer;
-  background: none; border: 1px solid transparent;
-  padding: 2px 8px; border-radius: var(--radius-pill);
-  transition: all 0.15s;
+  font-size: 12px; font-family: var(--font); font-weight: 600;
+  color: var(--text-secondary); cursor: pointer;
+  background: rgba(18, 19, 24, 0.6); border: 1px solid rgba(40, 42, 50, 0.5);
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  transition: all 0.15s; min-height: 32px;
+  display: flex; align-items: center;
 }
 .reset-btn:hover {
   color: var(--accent); border-color: var(--accent-border);
-  background: rgba(0, 255, 235, 0.05);
+  background: rgba(0, 255, 235, 0.08);
 }
 
 /* Shared: Section header with reset */
 .section-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 4px;
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 6px; padding-right: 2px;
 }
 .section-header .section-title { margin-bottom: 0; }
 
 /* Shared: Section description */
 .section-desc {
-  font-size: 11px; color: var(--text-muted);
-  line-height: 1.4; margin-bottom: 8px;
+  font-size: 13px; color: var(--text-muted);
+  line-height: 1.5; margin-bottom: 12px;
 }
 
 /* Shared: Search input */

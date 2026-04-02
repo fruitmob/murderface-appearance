@@ -360,33 +360,43 @@
   .slider-label {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-secondary);
   }
-  .slider-value { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 35px; text-align: right; }
+  .slider-value { font-size: 14px; font-weight: 700; color: var(--accent); min-width: 40px; text-align: right; }
 
   .slider {
     width: 100%;
-    height: 4px;
+    height: 6px;
     -webkit-appearance: none;
     appearance: none;
     background: rgba(30, 32, 40, 0.8);
-    border-radius: 2px;
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
   }
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px; height: 14px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: var(--text-primary);
     border: 2px solid rgba(30, 32, 40, 1);
     cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
   .slider::-webkit-slider-thumb:hover { background: var(--accent); }
   .slider.accent::-webkit-slider-thumb { background: var(--accent); border-color: rgba(0, 100, 90, 0.5); }
 
-  .overlay-group { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .slider.filled {
+    background: linear-gradient(to right,
+      var(--accent-dim) 0%,
+      var(--accent-dim) var(--fill, 50%),
+      rgba(30, 32, 40, 0.8) var(--fill, 50%),
+      rgba(30, 32, 40, 0.8) 100%
+    );
+  }
+
+  .overlay-group { padding: 8px 0; border-bottom: 1px solid var(--border); }
   .overlay-group:last-child { border-bottom: none; }
   .overlay-name { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; display: block; }
   .overlay-controls { display: flex; flex-direction: column; gap: 4px; }

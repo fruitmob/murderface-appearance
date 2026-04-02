@@ -396,10 +396,21 @@ local function setPedAppearance(ped, appearance)
         ped = cache.ped
     end
     if appearance then
+        local modelChanged = false
+        -- FMRP DEBUG: trace char select tattoo issue
+        local tattooCount = 0
+        if appearance.tattoos then
+            for zone, tats in pairs(appearance.tattoos) do
+                if type(tats) == 'table' then tattooCount = tattooCount + #tats end
+            end
+        end
+        print('^2[murderface-appearance] setPedAppearance called: ped=' .. tostring(ped) .. ' model=' .. tostring(appearance.model) .. ' hasTattoos=' .. tostring(appearance.tattoos ~= nil) .. ' tattooCount=' .. tattooCount .. '^7')
+
         -- FMRP: Only reload model if it's different from current (avoids resetting all components)
         if appearance.model and (type(ped) ~= 'number' or GetEntityModel(ped) ~= joaat(appearance.model)) then
             setPlayerModel(appearance.model)
             ped = cache.ped -- refresh ped handle after model change
+            modelChanged = true
         end
         setPedComponents(ped, appearance.components)
         setPedProps(ped, appearance.props)
@@ -407,14 +418,21 @@ local function setPedAppearance(ped, appearance)
         if appearance.headBlend and isPedFreemodeModel(ped) then setPedHeadBlend(ped, appearance.headBlend) end
         if appearance.faceFeatures then setPedFaceFeatures(ped, appearance.faceFeatures) end
         if appearance.headOverlays then setPedHeadOverlays(ped, appearance.headOverlays) end
-        -- FMRP: Pass tattoos to setPedHair (for automatic fade), then store but don't re-apply
-        if appearance.hair then setPedHair(ped, appearance.hair, appearance.tattoos) end
+        -- FMRP: Set hair component + color, but skip tattoo application inside setPedHair
+        if appearance.hair then
+            SetPedComponentVariation(ped, 2, appearance.hair.style, appearance.hair.texture, 0)
+            SetPedHairColor(ped, appearance.hair.color, appearance.hair.highlight)
+        end
         if appearance.eyeColor then setPedEyeColor(ped, appearance.eyeColor) end
-        -- FMRP: Only apply tattoos if hair didn't already (hair handles tattoos via setTattoos internally)
-        if appearance.tattoos and not appearance.hair then
+        -- FMRP: Always apply tattoos explicitly at the end, after ped is fully set up
+        if appearance.tattoos then
+            if modelChanged then Wait(200) end -- yield for ped to fully stream after model change
+            print('^2[murderface-appearance] Applying ' .. tattooCount .. ' tattoos to ped ' .. tostring(ped) .. ' (exists=' .. tostring(DoesEntityExist(ped)) .. ' freemode=' .. tostring(isPedFreemodeModel(ped)) .. ')^7')
             setPedTattoos(ped, appearance.tattoos)
-        elseif appearance.tattoos then
-            PED_TATTOOS = appearance.tattoos -- store reference without re-applying
+        end
+        -- FMRP: Apply automatic hair fade after tattoos (needs hair style)
+        if appearance.hair and isPedFreemodeModel(ped) and Config.AutomaticFade then
+            applyAutomaticFade(ped, appearance.hair.style)
         end
     end
 end
@@ -448,6 +466,38 @@ exports("setPedProps", setPedProps)
 exports("setPlayerAppearance", setPlayerAppearance)
 exports("setPedAppearance", setPedAppearance)
 exports("setPedTattoos", setPedTattoos)
+
+-- FMRP: Register exports under "illenium-appearance" name so other resources can call
+-- exports['illenium-appearance']:setPedAppearance() etc. FiveM's provide directive
+-- doesn't alias client exports, so we register them manually via the internal event system.
+local illeniumExports = {
+    getPedModel = getPedModel,
+    getPedComponents = getPedComponents,
+    getPedProps = getPedProps,
+    getPedHeadBlend = getPedHeadBlend,
+    getPedFaceFeatures = getPedFaceFeatures,
+    getPedHeadOverlays = getPedHeadOverlays,
+    getPedHair = getPedHair,
+    getPedAppearance = getPedAppearance,
+    setPlayerModel = setPlayerModel,
+    setPedHeadBlend = setPedHeadBlend,
+    setPedFaceFeatures = setPedFaceFeatures,
+    setPedHeadOverlays = setPedHeadOverlays,
+    setPedHair = setPedHair,
+    setPedEyeColor = setPedEyeColor,
+    setPedComponent = setPedComponent,
+    setPedComponents = setPedComponents,
+    setPedProp = setPedProp,
+    setPedProps = setPedProps,
+    setPlayerAppearance = setPlayerAppearance,
+    setPedAppearance = setPedAppearance,
+    setPedTattoos = setPedTattoos,
+}
+for name, fn in pairs(illeniumExports) do
+    AddEventHandler('__cfx_export_illenium-appearance_' .. name, function(setCB)
+        setCB(fn)
+    end)
+end
 
 client = {
     getPedAppearance = getPedAppearance,
