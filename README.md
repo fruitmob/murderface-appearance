@@ -23,10 +23,6 @@ The original illenium-appearance UI works but feels dated. This is a ground-up r
 - **Store ground markers** — color-coded rings at every clothing, barber, tattoo, and surgeon location
 - **Glassmorphic UI** — dark panel with blur, cyan accent, fills the left side of the screen
 
-### Recommended Companion
-
-**[uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot)** by uz-scripts generates the clothing thumbnail images. Run `/shotmaker` once per gender and every clothing variation gets captured with transparent backgrounds. Thumbnails serve locally via `cfx-nui://` — no external CDN needed. Apache 2.0 licensed.
-
 ## Screenshots
 
 | | |
@@ -61,7 +57,6 @@ Uses `provide "illenium-appearance"` plus manual export registration so existing
 - [oxmysql](https://github.com/overextended/oxmysql)
 - [ox_lib](https://github.com/overextended/ox_lib)
 - QBX / QBCore / ESX / ox_core (auto-detected)
-- [screenshot-basic](https://github.com/citizenfx/screenshot-basic) (if using uz_AutoShot)
 
 ## Commands
 
@@ -97,5 +92,4 @@ Outputs to `web/dist/`. The build is IIFE format for FiveM CEF compatibility (no
 ## Credits
 
 - Original illenium-appearance by [snakewiz](https://github.com/snakewiz) & [iLLeniumStudios](https://github.com/iLLeniumStudios)
-- [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot) by uz-scripts
 - Tattoo support from [franfdezmorales](https://github.com/franfdezmorales/fivem-appearance)
