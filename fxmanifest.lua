@@ -1,10 +1,10 @@
 fx_version "cerulean"
 game "gta5"
 
-author "snakewiz & iLLeniumStudios"
-description "A flexible player customization script for FiveM servers."
-repository "https://github.com/iLLeniumStudios/illenium-appearance"
-version "main"
+author "fruitmob"
+description "Modern Svelte 5 UI replacement for illenium-appearance — glassmorphism, clothing thumbnails, orbital camera"
+repository "https://github.com/fruitmob/murderface-appearance"
+version "2.1.0"
 
 lua54 "yes"
 

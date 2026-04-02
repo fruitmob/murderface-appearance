@@ -1,5 +1,9 @@
 # murderface-appearance
 
+[![License](https://img.shields.io/github/license/fruitmob/murderface-appearance)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/fruitmob/murderface-appearance)](https://github.com/fruitmob/murderface-appearance/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/fruitmob/murderface-appearance)](https://github.com/fruitmob/murderface-appearance)
+
 Drop-in replacement for illenium-appearance with a completely rebuilt UI. Custom Svelte 5 frontend, orbital camera, and redesigned controls — works with every resource that calls `illenium-appearance` exports without changing anything.
 
 ![Clothing Browser](screenshots/clothing.png)
@@ -88,6 +92,23 @@ npm run build
 ```
 
 Outputs to `web/dist/`. The build is IIFE format for FiveM CEF compatibility (no ES modules).
+
+## Changelog
+
+See [Releases](https://github.com/fruitmob/murderface-appearance/releases) for full version history.
+
+- **v2.1** — UX overhaul, Gemini QA polish, export compatibility fix, store ground markers
+- **v2.0** — Initial release with Svelte 5 UI rebuild, orbital camera, all illenium exports
+
+## Contributing
+
+PRs welcome — especially for new locales, bug fixes, framework compatibility, or UI improvements.
+
+1. Fork the repo
+2. Make your changes (UI source is in `web/src/`, Lua in `game/` and `client/`)
+3. `cd web/src && npm run build` to rebuild the NUI
+4. Test in-game
+5. Open a PR
 
 ## Credits
 
