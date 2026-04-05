@@ -75,7 +75,7 @@ Uses `provide "illenium-appearance"` plus manual export registration so existing
 
 When installed, murderface-appearance detects it automatically and loads thumbnails from AutoShot — no configuration needed.
 
-1. Install [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot/releases/tag/1.1.2) and `ensure uz_AutoShot` before this resource
+1. Install [uz_AutoShot](https://github.com/uz-scripts/uz_AutoShot/releases/latest) and `ensure uz_AutoShot` before this resource
 2. In-game: `/shotmaker` to open the capture studio and generate images
 3. Restart — thumbnails load automatically in the clothing browser
 
